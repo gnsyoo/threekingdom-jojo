@@ -23,8 +23,8 @@ export class Preparation {
   render() {
     const u = this.selected; const scenario=this.scenario; const hp=this.isReserve(u)?u.maxHp:u.hp;
     const roster = this.battle.units.filter(unit => unit.team !== 'enemy');
-    return `<main class="preparation-screen">
-      <header class="prep-header"><h1 class="ornate-panel">출진 준비</h1><span class="battle-location ornate-panel">${scenario.name}</span><button class="prep-gold ornate-panel" data-action="prep-shop" aria-label="상점 열기">${artIcon('coin',32)}<span>${this.gold.toLocaleString()}<small>냥</small></span>${icon('plus',20)}</button></header>
+    return `<main class="preparation-screen" style="--map-ratio:${scenario.cols}/${scenario.rows}">
+      <header class="prep-header"><button class="prep-header-back" data-action="prep-back" aria-label="군의로 돌아가기">${icon('back',20)}</button><h1 class="ornate-panel">출진 준비</h1><span class="battle-location ornate-panel">${scenario.name}</span><button class="prep-gold ornate-panel" data-action="prep-shop" aria-label="상점 열기">${artIcon('coin',32)}<span>${this.gold.toLocaleString()}<small>냥</small></span>${icon('plus',20)}</button></header>
       <div class="prep-columns">
         <section class="roster-panel ornate-panel" aria-label="출진 장수 목록"><h2>출진 무장 <span>${roster.filter(unit=>!this.isReserve(unit)).length} / ${roster.length}</span></h2>
           <div class="prep-roster">${roster.map(unit=>`<button class="roster-row ${unit.id===u.id?'selected':''}" data-action="prep-unit" data-unit-id="${unit.id}" aria-pressed="${unit.id===u.id}"><span class="roster-face">${portraitHtml(unit.id,unit.name)}</span><span class="roster-name"><strong>${unit.name}</strong><span>${artIcon(unit.role==='기병'?'flag':'sword',20)}${unit.role} <small>Lv.${unit.level}</small></span><em>${this.isReserve(unit)?'3턴 지원 예정':unit.team==='player'?'필수 출진':'연합 우군'}</em></span><span class="roster-sprite" style="--sprite-x:${unit.sprite%4*100/3}%;--sprite-y:${Math.floor(unit.sprite/4)*100}%"></span></button>`).join('')}</div>

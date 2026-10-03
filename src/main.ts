@@ -1,6 +1,7 @@
 import './style.css';
 import './concept.css';
 import './campaign.css';
+import './mobile.css';
 import { createBattle, findUnit, unitAt, inBounds, terrainAt, TERRAIN_INFO, reachable, key, canAttack, previewAttack, moveUnit, undoMove, attackUnit, waitUnit, encourage, usePotion, potionTargets, bonusComplete, endPlayerPhase, advancePhase, aiStep, parseSave, type BattleState, type Point, type Reachable, type Unit } from './core.ts';
 import { loadBattle, saveBattle, exportBattle, loadCompleted, recordVictory } from './storage.ts';
 import type { BattleScene, MapMode } from './battle-scene.ts';
@@ -92,13 +93,13 @@ function showStory() {
   window.clearTimeout(storyTimer);
   if (storyIndex === 2) storyAuto = false;
   screen = 'story'; const story=storyLines(),scenario=getScenario(storyScenario),s=story[storyIndex];
-  root.innerHTML = `<main class="story-screen">
+  root.innerHTML = `<main class="story-screen ${storyIndex===2?'has-choices':''}">
     <div class="story-shade"></div><header class="story-heading ornate-panel"><span>◇</span><h1>${scenario.name}의 군의</h1></header>
     <div class="story-character story-left ${s.speaker==='조조'?'speaking':''}">${portraitHtml('cao','조조')}</div>
     <div class="story-character story-right ${s.speaker==='군관'?'speaking':''}">${portraitHtml('officer','군관')}</div>
     <div class="story-dots">${story.map((_, i) => `<span class="${i <= storyIndex ? 'active' : ''}"></span>`).join('')}</div>
     ${storyIndex === 2 ? `<div class="story-choices"><button class="${storyChoice==='protect'?'selected':''}" data-action="choice-protect" aria-pressed="${storyChoice==='protect'}">${artIcon('formation')}<strong>${scenario.protectLabel}</strong><span>회복약 3개</span></button><button class="${storyChoice==='advance'?'selected':''}" data-action="choice-advance" aria-pressed="${storyChoice==='advance'}">${artIcon('sword')}<strong>선봉을 강화한다</strong><span>회복약 2개 · 첫 턴 공격 +10%</span></button></div>` : ''}
-    <section class="dialogue-box"><div class="dialogue-speaker ornate-panel">${s.speaker}</div><div class="dialogue-paper ornate-panel">${storyIndex<2?`<button class="dialogue-text" data-action="story-next" aria-label="대화 다음으로">${s.line}</button>`:`<p class="dialogue-text">${s.line}</p>`}<div class="dialogue-bottom"><span>${s.note}</span>${storyIndex < 2 ? `<button class="dialogue-next" data-action="story-next" aria-label="계속">▼</button>` : `<button class="primary" data-action="choice-confirm" ${storyChoice?'':'disabled'}>출진 준비로 ${icon('chevron',18)}</button>`}</div></div><nav class="dialogue-tools" aria-label="대화 메뉴"><button class="ornate-button" data-action="story-log">${artIcon('scroll',30)}기록</button><button class="ornate-button ${storyAuto?'active':''}" data-action="story-auto" aria-pressed="${storyAuto}">${icon(storyAuto?'pause':'chevron',22)}자동</button></nav></section>
+    <section class="dialogue-box" aria-label="군의 대화"><div class="dialogue-paper"><div class="dialogue-speaker">${s.speaker}</div>${storyIndex<2?`<button class="dialogue-text" data-action="story-next" aria-label="대화 다음으로">${s.line}</button>`:`<p class="dialogue-text">${s.line}</p>`}<div class="dialogue-bottom"><span>${s.note}</span>${storyIndex < 2 ? `<button class="dialogue-next" data-action="story-next" aria-label="계속">▼</button>` : `<button class="primary" data-action="choice-confirm" ${storyChoice?'':'disabled'}>출진 준비로 ${icon('chevron',18)}</button>`}</div></div><nav class="dialogue-tools" aria-label="대화 메뉴"><button class="ornate-button" data-action="story-log">${artIcon('scroll',30)}기록</button><button class="ornate-button ${storyAuto?'active':''}" data-action="story-auto" aria-pressed="${storyAuto}">${icon(storyAuto?'pause':'chevron',22)}자동</button></nav></section>
     <button class="story-back ornate-button" data-action="title">${icon('back',18)}처음 화면</button>
   </main>`;
   scheduleStory();
@@ -127,10 +128,10 @@ async function mountBattle() {
       <div id="battlefield" role="img" aria-label="부대를 탭해 선택하고 칸을 탭해 행동을 미리 볼 수 있는 ${scenario.name} 전장"></div>
       <div class="map-note"><span class="map-dot"></span> ${scenario.location} <span class="weather">맑음</span></div>
       <div class="map-tools">${actionButton('focus', '조조', 'flag', 'title="조조에게 지도 이동"')}${actionButton('overview', '전체', 'map', 'title="전체 지도/확대 보기"')}<button data-action="zoom-in" aria-label="지도 확대">${icon('plus', 18)}</button><button data-action="zoom-out" aria-label="지도 축소">${icon('minus', 18)}</button><button data-action="grid" aria-label="격자 표시 전환" aria-pressed="${prefs.grid}">${icon('grid', 18)}</button>${scenario.id==='hulao'?'<button data-action="threat" aria-label="지휘관 위협 범위 표시" aria-pressed="false">위협</button>':''}</div>
-      <div id="decision"></div><div id="map-loading"><span class="loading-spinner"></span> 전장을 펼치는 중</div>
+      <div class="map-legend" aria-label="진영 표시"><span class="player">◆ 아군</span><span class="ally">● 우군</span><span class="enemy">▲ 적군</span></div><div id="decision"></div><div id="map-loading"><span class="loading-spinner"></span> 전장을 펼치는 중</div>
     </section><aside id="unit-panel" aria-label="선택 부대 정보"></aside></div>
     <footer class="command-bar"><div id="command-actor"></div><div class="command-center"><div id="command-hint"></div><nav class="command-actions" aria-label="조조의 명령">${actionButton('move', '이동', 'move', 'data-shortcut="1"')}${actionButton('attack', '공격', 'sword', 'data-shortcut="2"')}${actionButton('encourage', '책략', 'scroll', 'data-shortcut="3"')}${actionButton('potion', '도구', 'potion', 'data-shortcut="4"')}${actionButton('wait', '대기', 'wait', 'data-shortcut="5"')}</nav></div><button class="end-turn" data-action="end-turn">${artIcon('flag',48)}<span>턴 종료<small>SPACE</small></span></button></footer>
-    <div class="portrait-tip">가로로 돌리면 전장이 더 넓게 보입니다.</div>
+
   </main>`;
   const epoch = generation;
   let engine: typeof import('./battle-scene.ts');
@@ -139,7 +140,7 @@ async function mountBattle() {
   if (epoch !== generation || screen !== 'battle') return;
   scene = new engine.BattleScene(state.scenarioId);
   scene.onTile = handleTile;
-  scene.onReady = () => { document.querySelector('#map-loading')?.remove(); render(); if (innerHeight < 500) scene?.centerOn(actor()); void runAi(); };
+  scene.onReady = () => { document.querySelector('#map-loading')?.remove(); render(); if (innerWidth < 720 || innerHeight < 500) scene?.centerOn(actor()); void runAi(); };
   renderer = engine.createRenderer(document.querySelector<HTMLElement>('#battlefield')!, scene);
   render();
 }
@@ -217,7 +218,7 @@ function setMode(next: MapMode) {
   if (!playerCanAct()) return;
   if (next === 'move' && actor().moved) return;
   selectedId = 'cao'; mode = next; decision = null; sound(); render();
-  if (innerHeight < 500) scene?.centerOn(actor());
+  if (innerWidth < 720 || innerHeight < 500) scene?.centerOn(actor());
 }
 function confirmDecision() {
   if (!decision || !playerCanAct()) return;
@@ -227,7 +228,7 @@ function confirmDecision() {
   if (d.kind === 'potion') { ok = usePotion(state,d.targetId); if (ok) sound('heal'); }
   if (d.kind === 'encourage') { ok = encourage(state); if (ok) sound('heal'); }
   decision = null;
-  if (ok) { remember(); render(); if (innerHeight < 500) scene?.centerOn(actor()); } else toast('지금은 이 행동을 할 수 없습니다.');
+  if (ok) { remember(); render(); if (innerWidth < 720 || innerHeight < 500) scene?.centerOn(actor()); } else toast('지금은 이 행동을 할 수 없습니다.');
 }
 
 async function runAi() {
@@ -249,7 +250,7 @@ async function runAi() {
       await wait(prefs.fast ? 140 : 580);
     }
   } finally {
-    if (epoch === generation) { aiRunning = false; selectedId = 'cao'; mode = actor().moved ? 'inspect' : 'move'; render(); if (innerHeight < 500) scene?.centerOn(actor()); }
+    if (epoch === generation) { aiRunning = false; selectedId = 'cao'; mode = actor().moved ? 'inspect' : 'move'; render(); if (innerWidth < 720 || innerHeight < 500) scene?.centerOn(actor()); }
   }
 }
 

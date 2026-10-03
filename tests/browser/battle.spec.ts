@@ -174,7 +174,7 @@ test('concept preparation menus preserve purchases and confirmed deployment into
   await page.locator('.modal-footer [data-action="close-modal"]').click();
   await page.locator('.prep-actions [data-action="prep-deployment"]').click();await page.locator('[data-action="prep-position"][data-x="5"][data-y="8"]').click();
   await page.locator('[data-action="prep-deploy-confirm"]').click();
-  await page.locator('[data-action="prep-back"]').click();await page.locator('[data-action="choice-confirm"]').click();
+  await page.locator('.prep-footer [data-action="prep-back"]').click();await page.locator('[data-action="choice-confirm"]').click();
   await page.locator('[data-action="depart"]').click();await page.waitForFunction(()=>(window as any).__WEI_DEBUG__?.ready());
   const s=await state(page);expect(s.potions).toBe(3);expect(s.units[0].x).toBe(5);expect(s.units[0].y).toBe(8);expect(s.units[0].buff).toBe(1);
   await page.reload();await page.getByRole('button',{name:/전투 이어하기/}).click();await page.waitForFunction(()=>(window as any).__WEI_DEBUG__?.ready());

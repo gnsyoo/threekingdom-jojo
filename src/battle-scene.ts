@@ -55,7 +55,7 @@ export class BattleScene extends Phaser.Scene {
         this.anims.create({key:`${kind}-${index}`,frames:unit.frames.map((_f,pose)=>({key:textureKey,frame:frameName(pose)})),frameRate:kind==='walk'?12:10,repeat:kind==='walk'?-1:0,skipMissedFrames:false});
       });
     }
-    this.add.image(0, 0, 'ground').setOrigin(0).setDisplaySize(this.scenario.cols * TILE, this.scenario.rows * TILE);
+    this.add.image(0, 0, 'ground').setOrigin(0).setDisplaySize(this.scenario.cols * TILE, this.scenario.rows * TILE).setTint(0xaebaaa);
     const marker = this.add.graphics();
     const landmark=this.scenario.landmark;
     marker.lineStyle(2, 0xb9dcaa, .55).strokeCircle((landmark.x+.5)*TILE,(landmark.y+.5)*TILE,15);
@@ -90,13 +90,17 @@ export class BattleScene extends Phaser.Scene {
   }
   private configureCamera(initial: boolean) {
     const camera = this.cameras.main;
+    const center=camera.midPoint.clone();
+    const portrait=window.matchMedia('(orientation:portrait) and (max-width:900px)').matches;
     const fit = Math.min(this.scale.width / (this.scenario.cols * TILE), this.scale.height / (this.scenario.rows * TILE));
     const cover = Math.max(this.scale.width / (this.scenario.cols * TILE), this.scale.height / (this.scenario.rows * TILE));
-    camera.setZoom(this.overview ? fit : Math.max(cover, this.scale.width < 850 ? .73 : .75));
+    camera.setZoom(this.overview ? fit : portrait ? .78 : Math.max(cover,this.scale.width<850?.73:.75));
     this.updateBounds();
     const cao = this.current?.state.units.find(u => u.id === 'cao');
-    if (initial && this.scale.height < 440 && cao) this.centerOn(cao);
-    else if (initial || this.overview) camera.centerOn(this.scenario.cols * TILE / 2, this.scenario.rows * TILE / 2);
+    if(this.overview)camera.centerOn(this.scenario.cols*TILE/2,this.scenario.rows*TILE/2);
+    else if(initial&&(portrait||this.scale.height<440)&&cao)this.centerOn(cao);
+    else if(initial)camera.centerOn(this.scenario.cols*TILE/2,this.scenario.rows*TILE/2);
+    else camera.centerOn(center.x,center.y);
   }
   zoom(delta: number) {
     if (!this.ready) return;
@@ -163,9 +167,11 @@ export class BattleScene extends Phaser.Scene {
       let node = this.nodes.get(u.id);
       if (!node) {
         node = this.add.container((u.x + .5) * TILE, (u.y + 1) * TILE - 7).setDepth(10 + u.y);
-        node.add(this.add.ellipse(0, -2, u.sprite === 2 ? 54 : 38, 11, 0x12211a, .48));
+        const teamColor=u.team==='player'?0x69c5ff:u.team==='ally'?0x6ee9c0:0xff776e;
+        node.add(this.add.ellipse(0,-1,u.role==='기병'?56:46,16,0x06131d,.95).setStrokeStyle(3,teamColor,1));
         const sprite=this.add.sprite(0,0,u.sprite>=8?'boss-motion':'troops',u.sprite>=8?`walk-${u.sprite}-0`:`unit-${u.sprite}`);this.idle(u,sprite);
         sprite.name = 'sprite'; node.add(sprite);
+        if(this.game.renderer.type===Phaser.WEBGL)sprite.preFX?.addGlow(0x06121b,4,0,false,.1,4);
         sprite.on(Phaser.Animations.Events.ANIMATION_UPDATE,(_animation:Phaser.Animations.Animation,frame:Phaser.Animations.AnimationFrame)=>{
           this.motionFrames.push({id:u.id,kind:_animation.key.startsWith('attack-')?'attack':'walk',frame:frame.textureFrame});
           if(this.motionFrames.length>160)this.motionFrames.shift();
@@ -173,7 +179,8 @@ export class BattleScene extends Phaser.Scene {
         this.tweens.add({targets:sprite,y:-1.5,duration:650,yoyo:true,repeat:-1,ease:'Sine.easeInOut'});
         const flag = this.add.graphics(); flag.name = 'flag'; node.add(flag);
         const health = this.add.graphics(); health.name = 'health'; node.add(health);
-        const label = this.add.text(0, 13, u.name, { fontFamily: '"Noto Serif KR", serif', fontSize: '12px', color: u.team === 'enemy' ? '#f7d8ba' : '#f1e9c8', stroke: '#17251d', strokeThickness: 3 }).setOrigin(.5, 0);
+        const labelName=u.name.replace('동탁군 ','');
+        const label = this.add.text(0,12,`${u.team==='player'?'◆':u.team==='ally'?'●':'▲'} ${labelName}`,{fontFamily:'"Noto Sans KR",sans-serif',fontSize:'12px',fontStyle:'bold',color:'#fff7e5',stroke:'#08131c',strokeThickness:2,backgroundColor:'#08131ceb',padding:{left:4,right:4,top:2,bottom:2}}).setOrigin(.5,0);
         label.name = 'label'; node.add(label); this.nodes.set(u.id, node);
       }
       const x = (u.x + .5) * TILE, y = (u.y + 1) * TILE - 7;
@@ -187,14 +194,14 @@ export class BattleScene extends Phaser.Scene {
       } else if (!previous) node.setPosition(x, y);
       this.positions.set(u.id, { x: u.x, y: u.y });
       const sprite = node.getByName('sprite') as Phaser.GameObjects.Sprite;
-      sprite.setAlpha(u.acted && state.phase === u.team ? .66 : 1);
+      sprite.setAlpha(u.acted && state.phase === u.team ? .88 : 1);
       const flag = node.getByName('flag') as Phaser.GameObjects.Graphics;
-      const color = u.team === 'player' ? 0x6db8e8 : u.team === 'ally' ? 0x74c1aa : 0xd38551;
+      const color = u.team === 'player' ? 0x69c5ff : u.team === 'ally' ? 0x6ee9c0 : 0xff776e;
       flag.clear().lineStyle(2, 0xdfc28c).lineBetween(-24, -38, -24, -62);
       flag.fillStyle(color).fillTriangle(-23, -63, -9, -59, -23, -53);
       const health = node.getByName('health') as Phaser.GameObjects.Graphics;
-      health.clear().fillStyle(0x162720, .9).fillRoundedRect(-22, 3, 44, 6, 2);
-      health.fillStyle(u.team === 'enemy' ? 0xc77854 : 0x88c398).fillRoundedRect(-21, 4, 42 * u.hp / u.maxHp, 4, 1);
+      health.clear().fillStyle(0x05101a,1).fillRoundedRect(-24,2,48,8,2).lineStyle(1,0xe4e8db,1).strokeRoundedRect(-24,2,48,8,2);
+      health.fillStyle(color).fillRoundedRect(-23,3,46*u.hp/u.maxHp,6,1);
       if (u.id === selectedId && u.hp) {
         const px = u.x * TILE, py = u.y * TILE;
         g.fillStyle(0xe0bd70, .1).fillRect(px + 2, py + 2, TILE - 4, TILE - 4);
@@ -312,10 +319,24 @@ export class BattleScene extends Phaser.Scene {
 }
 
 export function createRenderer(parent: HTMLElement, scene: BattleScene): Phaser.Game {
-  return new Phaser.Game({
+  const game=new Phaser.Game({
     type: Phaser.AUTO, parent, backgroundColor: '#202e20', pixelArt: true, roundPixels: true,
     scale: { mode: Phaser.Scale.RESIZE, width: parent.clientWidth, height: parent.clientHeight },
     scene, input: { activePointers: 3 }, audio: { noAudio: true },
     banner: false,
   });
+  // CSS changes the parent when rotating or expanding a compact information panel.
+  // Observe the actual map rectangle instead of relying on window resize timing.
+  const resize=()=>{
+    const width=parent.clientWidth,height=parent.clientHeight;
+    if(!game.isBooted||!width||!height)return;
+    if(game.scale.width!==width||game.scale.height!==height){
+      game.scale.resize(width,height);
+      game.canvas.style.width=`${width}px`;game.canvas.style.height=`${height}px`;
+    }
+  };
+  const observer=new ResizeObserver(resize);observer.observe(parent);
+  game.events.once(Phaser.Core.Events.READY,resize);
+  game.events.once(Phaser.Core.Events.DESTROY,()=>observer.disconnect());
+  return game;
 }
