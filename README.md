@@ -10,6 +10,8 @@
 
 `main`에 푸시하면 GitHub Actions가 의존성 설치, 전술 규칙 테스트, 타입 검사와 빌드를 수행하고 `dist/`를 Pages에 배포한다. 저장소 Pages의 배포 소스는 GitHub Actions다. Actions 화면에서 `Deploy game to GitHub Pages`를 수동 실행할 수도 있다.
 
+최초 배포는 [Settings → Pages](https://github.com/gnsyoo/threekingdom-jojo/settings/pages)에서 **Build and deployment → Source → GitHub Actions**를 선택해 사이트를 활성화한 뒤 진행한다. 이후 `main` 푸시 또는 워크플로의 `Run workflow`로 배포한다. 이 초기 설정에는 저장소의 Pages 설정 권한이 필요하다. 연동 토큰으로 활성화할 경우 GitHub App의 `administration:write`와 `pages:write` 권한이 모두 필요하다.
+
 ```bash
 npm run build:pages
 npm run preview -- --port 4173 --strictPort
