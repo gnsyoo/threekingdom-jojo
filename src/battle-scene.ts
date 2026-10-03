@@ -55,7 +55,7 @@ export class BattleScene extends Phaser.Scene {
         this.anims.create({key:`${kind}-${index}`,frames:unit.frames.map((_f,pose)=>({key:textureKey,frame:frameName(pose)})),frameRate:kind==='walk'?12:10,repeat:kind==='walk'?-1:0,skipMissedFrames:false});
       });
     }
-    this.add.image(0, 0, 'ground').setOrigin(0).setDisplaySize(this.scenario.cols * TILE, this.scenario.rows * TILE).setTint(0xaebaaa);
+    this.add.image(0, 0, 'ground').setOrigin(0).setDisplaySize(this.scenario.cols * TILE, this.scenario.rows * TILE).setTint(0xf0f2ed);
     const marker = this.add.graphics();
     const landmark=this.scenario.landmark;
     marker.lineStyle(2, 0xb9dcaa, .55).strokeCircle((landmark.x+.5)*TILE,(landmark.y+.5)*TILE,15);
@@ -168,10 +168,9 @@ export class BattleScene extends Phaser.Scene {
       if (!node) {
         node = this.add.container((u.x + .5) * TILE, (u.y + 1) * TILE - 7).setDepth(10 + u.y);
         const teamColor=u.team==='player'?0x69c5ff:u.team==='ally'?0x6ee9c0:0xff776e;
-        node.add(this.add.ellipse(0,-1,u.role==='기병'?56:46,16,0x06131d,.95).setStrokeStyle(3,teamColor,1));
+        node.add(this.add.ellipse(0,-1,u.role==='기병'?56:46,16).setStrokeStyle(1.5,teamColor,.6));
         const sprite=this.add.sprite(0,0,u.sprite>=8?'boss-motion':'troops',u.sprite>=8?`walk-${u.sprite}-0`:`unit-${u.sprite}`);this.idle(u,sprite);
         sprite.name = 'sprite'; node.add(sprite);
-        if(this.game.renderer.type===Phaser.WEBGL)sprite.preFX?.addGlow(0x06121b,4,0,false,.1,4);
         sprite.on(Phaser.Animations.Events.ANIMATION_UPDATE,(_animation:Phaser.Animations.Animation,frame:Phaser.Animations.AnimationFrame)=>{
           this.motionFrames.push({id:u.id,kind:_animation.key.startsWith('attack-')?'attack':'walk',frame:frame.textureFrame});
           if(this.motionFrames.length>160)this.motionFrames.shift();
@@ -180,7 +179,7 @@ export class BattleScene extends Phaser.Scene {
         const flag = this.add.graphics(); flag.name = 'flag'; node.add(flag);
         const health = this.add.graphics(); health.name = 'health'; node.add(health);
         const labelName=u.name.replace('동탁군 ','');
-        const label = this.add.text(0,12,`${u.team==='player'?'◆':u.team==='ally'?'●':'▲'} ${labelName}`,{fontFamily:'"Noto Sans KR",sans-serif',fontSize:'12px',fontStyle:'bold',color:'#fff7e5',stroke:'#08131c',strokeThickness:2,backgroundColor:'#08131ceb',padding:{left:4,right:4,top:2,bottom:2}}).setOrigin(.5,0);
+        const label = this.add.text(0,12,`${u.team==='player'?'◆':u.team==='ally'?'●':'▲'} ${labelName}`,{fontFamily:'"Noto Sans KR",sans-serif',fontSize:'12px',fontStyle:'bold',color:'#fff7e5',stroke:'#08131c',strokeThickness:2,backgroundColor:'#08131cb8',padding:{left:4,right:4,top:2,bottom:2}}).setOrigin(.5,0);
         label.name = 'label'; node.add(label); this.nodes.set(u.id, node);
       }
       const x = (u.x + .5) * TILE, y = (u.y + 1) * TILE - 7;
