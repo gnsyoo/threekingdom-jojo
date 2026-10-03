@@ -1,13 +1,14 @@
 import Phaser from 'phaser';
-import { COLS, ROWS, key, reachable as movementRange, findUnit, type BattleState, type Point, type Reachable, type Hit, type Unit } from './core.ts';
+import { getScenario, type Scenario, type ScenarioId } from './scenarios.ts';
+import { key, inBounds, reachable as movementRange, findUnit, type BattleState, type Point, type Reachable, type Hit, type Unit } from './core.ts';
 
 export const TILE = 64;
 export type MapMode = 'inspect' | 'move' | 'attack';
 export interface MapPresentation {
   state: BattleState; selectedId: string; mode: MapMode;
-  reachable: Reachable[]; preview: Point[]; target: Point | null; grid: boolean; fast: boolean;
+  reachable: Reachable[]; preview: Point[]; target: Point | null; grid: boolean; fast: boolean; threat:boolean;
 }
-interface MotionAtlas { units: { scale: number; frames: { x:number; y:number; width:number; height:number; pivotX:number; pivotY:number }[] }[] }
+interface MotionAtlas { units: { scale: number; texture?:string; frames: { x:number; y:number; width:number; height:number; pivotX:number; pivotY:number }[] }[] }
 export class BattleScene extends Phaser.Scene {
   onTile: (point: Point) => void = () => {};
   onReady: () => void = () => {};
@@ -27,12 +28,14 @@ export class BattleScene extends Phaser.Scene {
   private counts = { walks:0, attacks:0, impacts:0 };
   private motionFrames: { id:string; kind:string; frame:string|number }[] = [];
 
-  constructor() { super('battle'); }
+  private readonly scenario:Scenario;
+  constructor(scenarioId:ScenarioId='yeongcheon') { super('battle');this.scenario=getScenario(scenarioId); }
   preload() {
-    this.load.image('ground', `${import.meta.env.BASE_URL}assets/battlefield.png`);
+    this.load.image('ground', `${import.meta.env.BASE_URL}assets/${this.scenario.background}`);
     this.load.image('troops', `${import.meta.env.BASE_URL}assets/units.png`);
     this.load.image('walk', `${import.meta.env.BASE_URL}assets/units-walk.png`);
     this.load.image('attack', `${import.meta.env.BASE_URL}assets/units-attack.png`);
+    if(this.scenario.id!=='yeongcheon'){this.load.image('boss-motion',`${import.meta.env.BASE_URL}assets/boss-motion.png`);this.load.json('boss-data',`${import.meta.env.BASE_URL}assets/boss-motion.json`);}
     this.load.json('unit-motion', `${import.meta.env.BASE_URL}assets/unit-motion.json`);
   }
   create() {
@@ -41,20 +44,22 @@ export class BattleScene extends Phaser.Scene {
     const w = source.width / 4, h = source.height / 2;
     for (let i = 0; i < 8; i++) atlas.add(`unit-${i}`, 0, (i % 4) * w, Math.floor(i / 4) * h, w, h);
     this.motionData = this.cache.json.get('unit-motion');
+    if(this.scenario.id!=='yeongcheon'){const extras=this.cache.json.get('boss-data');for(const id of [8,9])for(const kind of ['walk','attack'] as const)this.motionData[kind].units[id]={...extras[id][kind],texture:'boss-motion'};}
     for (const kind of ['walk','attack'] as const) {
-      const texture=this.textures.get(kind);
       this.motionData[kind].units.forEach((unit,index)=>{
+        const textureKey=unit.texture??kind,texture=this.textures.get(textureKey),frameName=(pose:number)=>unit.texture?`${kind}-${index}-${pose}`:`${index}-${pose}`;
         unit.frames.forEach((rect,pose)=>{
-          const frame=texture.add(`${index}-${pose}`,0,rect.x,rect.y,rect.width,rect.height);
+          const frame=texture.add(frameName(pose),0,rect.x,rect.y,rect.width,rect.height);
           if(frame){frame.customPivot=true;frame.pivotX=rect.pivotX;frame.pivotY=rect.pivotY;}
         });
-        this.anims.create({key:`${kind}-${index}`,frames:unit.frames.map((_f,pose)=>({key:kind,frame:`${index}-${pose}`})),frameRate:kind==='walk'?12:10,repeat:kind==='walk'?-1:0,skipMissedFrames:false});
+        this.anims.create({key:`${kind}-${index}`,frames:unit.frames.map((_f,pose)=>({key:textureKey,frame:frameName(pose)})),frameRate:kind==='walk'?12:10,repeat:kind==='walk'?-1:0,skipMissedFrames:false});
       });
     }
-    this.add.image(0, 0, 'ground').setOrigin(0).setDisplaySize(COLS * TILE, ROWS * TILE);
+    this.add.image(0, 0, 'ground').setOrigin(0).setDisplaySize(this.scenario.cols * TILE, this.scenario.rows * TILE);
     const marker = this.add.graphics();
-    marker.lineStyle(2, 0xb9dcaa, .55).strokeCircle(3.5 * TILE, 3.5 * TILE, 15);
-    this.add.text(3.5 * TILE, 3.5 * TILE - 30, '민가', { fontFamily: 'serif', fontSize: '13px', color: '#edf4cc', stroke: '#233221', strokeThickness: 3 }).setOrigin(.5);
+    const landmark=this.scenario.landmark;
+    marker.lineStyle(2, 0xb9dcaa, .55).strokeCircle((landmark.x+.5)*TILE,(landmark.y+.5)*TILE,15);
+    this.add.text((landmark.x+.5)*TILE,(landmark.y+.5)*TILE-30,landmark.name, { fontFamily: 'serif', fontSize: '13px', color: '#edf4cc', stroke: '#233221', strokeThickness: 3 }).setOrigin(.5);
     this.overlay = this.add.graphics().setDepth(2);
     this.ready = true; this.configureCamera(true);
     this.scale.on('resize', () => this.configureCamera(false));
@@ -85,13 +90,13 @@ export class BattleScene extends Phaser.Scene {
   }
   private configureCamera(initial: boolean) {
     const camera = this.cameras.main;
-    const fit = Math.min(this.scale.width / (COLS * TILE), this.scale.height / (ROWS * TILE));
-    const cover = Math.max(this.scale.width / (COLS * TILE), this.scale.height / (ROWS * TILE));
+    const fit = Math.min(this.scale.width / (this.scenario.cols * TILE), this.scale.height / (this.scenario.rows * TILE));
+    const cover = Math.max(this.scale.width / (this.scenario.cols * TILE), this.scale.height / (this.scenario.rows * TILE));
     camera.setZoom(this.overview ? fit : Math.max(cover, this.scale.width < 850 ? .73 : .75));
     this.updateBounds();
     const cao = this.current?.state.units.find(u => u.id === 'cao');
     if (initial && this.scale.height < 440 && cao) this.centerOn(cao);
-    else if (initial || this.overview) camera.centerOn(COLS * TILE / 2, ROWS * TILE / 2);
+    else if (initial || this.overview) camera.centerOn(this.scenario.cols * TILE / 2, this.scenario.rows * TILE / 2);
   }
   zoom(delta: number) {
     if (!this.ready) return;
@@ -100,7 +105,7 @@ export class BattleScene extends Phaser.Scene {
     this.overview = false; camera.setZoom(Phaser.Math.Clamp(camera.zoom + delta, .28, 1.65)); this.updateBounds(); camera.centerOn(center.x, center.y);
   }
   private updateBounds() {
-    const c = this.cameras.main, w = COLS * TILE, h = ROWS * TILE;
+    const c = this.cameras.main, w = this.scenario.cols * TILE, h = this.scenario.rows * TILE;
     const visibleW = c.width / c.zoom, visibleH = c.height / c.zoom;
     c.setBounds(Math.min(0, (w - visibleW) / 2), Math.min(0, (h - visibleH) / 2), Math.max(w, visibleW), Math.max(h, visibleH));
   }
@@ -117,11 +122,22 @@ export class BattleScene extends Phaser.Scene {
     const g = this.overlay; g.clear();
     if (grid) {
       g.lineStyle(1, 0xf4e9bd, .12);
-      for (let x = 0; x <= COLS; x++) g.lineBetween(x * TILE, 0, x * TILE, ROWS * TILE);
-      for (let y = 0; y <= ROWS; y++) g.lineBetween(0, y * TILE, COLS * TILE, y * TILE);
+      for (let x = 0; x <= this.scenario.cols; x++) g.lineBetween(x * TILE, 0, x * TILE, this.scenario.rows * TILE);
+      for (let y = 0; y <= this.scenario.rows; y++) g.lineBetween(0, y * TILE, this.scenario.cols * TILE, y * TILE);
     }
     if (mode === 'move') {
       for (const p of reachable) { g.fillStyle(0x438fc4, .25).fillRect(p.x * TILE + 1, p.y * TILE + 1, TILE - 2, TILE - 2); g.lineStyle(1, 0x8fceef, .65).strokeRect(p.x * TILE + 1, p.y * TILE + 1, TILE - 2, TILE - 2); }
+    }
+    if(data.threat){
+      const danger=new Set<string>();
+      for(const boss of state.units.filter(u=>u.boss&&u.hp>0)){
+        const positions=boss.id==='lubu'&&state.round<3?[boss]:movementRange(state,boss);
+        for(const position of positions)for(let dy=-boss.range[1];dy<=boss.range[1];dy++)for(let dx=-boss.range[1];dx<=boss.range[1];dx++){
+          const point={x:position.x+dx,y:position.y+dy},distance=Math.abs(dx)+Math.abs(dy);
+          if(inBounds(point,state.scenarioId)&&distance>=boss.range[0]&&distance<=boss.range[1])danger.add(key(point));
+        }
+      }
+      for(const point of danger){const [x,y]=point.split(',').map(Number);g.fillStyle(0xc45550,.2).fillRect(x*TILE+1,y*TILE+1,TILE-2,TILE-2);g.lineStyle(1,0xe1a176,.45).strokeRect(x*TILE+1,y*TILE+1,TILE-2,TILE-2);}
     }
     const actor = state.units.find(u => u.id === 'cao')!;
     if (mode === 'attack' && !actor.acted && state.phase === 'player') {
@@ -148,10 +164,10 @@ export class BattleScene extends Phaser.Scene {
       if (!node) {
         node = this.add.container((u.x + .5) * TILE, (u.y + 1) * TILE - 7).setDepth(10 + u.y);
         node.add(this.add.ellipse(0, -2, u.sprite === 2 ? 54 : 38, 11, 0x12211a, .48));
-        const sprite = this.add.sprite(0, 0, 'troops', `unit-${u.sprite}`).setOrigin(.5, .98).setDisplaySize(u.sprite === 2 ? 82 : 70, u.sprite === 2 ? 109 : 94);
+        const sprite=this.add.sprite(0,0,u.sprite>=8?'boss-motion':'troops',u.sprite>=8?`walk-${u.sprite}-0`:`unit-${u.sprite}`);this.idle(u,sprite);
         sprite.name = 'sprite'; node.add(sprite);
         sprite.on(Phaser.Animations.Events.ANIMATION_UPDATE,(_animation:Phaser.Animations.Animation,frame:Phaser.Animations.AnimationFrame)=>{
-          this.motionFrames.push({id:u.id,kind:frame.textureKey,frame:frame.textureFrame});
+          this.motionFrames.push({id:u.id,kind:_animation.key.startsWith('attack-')?'attack':'walk',frame:frame.textureFrame});
           if(this.motionFrames.length>160)this.motionFrames.shift();
         });
         this.tweens.add({targets:sprite,y:-1.5,duration:650,yoyo:true,repeat:-1,ease:'Sine.easeInOut'});
@@ -199,6 +215,7 @@ export class BattleScene extends Phaser.Scene {
   }
   private idle(u: Unit, sprite: Phaser.GameObjects.Sprite) {
     if(!sprite.active) return;
+    if(u.sprite>=8){const scale=this.motionData.walk.units[u.sprite].scale;sprite.stop().setTexture('boss-motion',`walk-${u.sprite}-0`).setScale(scale*.8,scale);return;}
     sprite.stop().setTexture('troops',`unit-${u.sprite}`).setOrigin(.5,.98).setDisplaySize(u.sprite===2?82:70,u.sprite===2?109:94);
   }
   private playMotion(kind: 'walk'|'attack',u:Unit,sprite:Phaser.GameObjects.Sprite) {
@@ -230,7 +247,7 @@ export class BattleScene extends Phaser.Scene {
       const x=node.x,y=node.y,dx=(target.x-u.x),dy=(target.y-u.y),length=Math.hypot(dx,dy)||1;
       let impacted=false;
       const impact=()=>{if(!impacted){impacted=true;this.impact(hit);}};
-      const peak=(_animation:Phaser.Animations.Animation,frame:Phaser.Animations.AnimationFrame)=>{if(frame.textureKey==='attack'&&frame.index>=3)impact();};
+      const peak=(_animation:Phaser.Animations.Animation,frame:Phaser.Animations.AnimationFrame)=>{if(_animation.key.startsWith('attack-')&&frame.index>=3)impact();};
       const completeKey=`${Phaser.Animations.Events.ANIMATION_COMPLETE_KEY}attack-${u.sprite}`;
       const complete=()=>{
         sprite.off(Phaser.Animations.Events.ANIMATION_UPDATE,peak);

@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createBattle, findUnit, reachable, terrainAt, moveUnit, undoMove, canAttack, attackUnit, waitUnit, encourage, usePotion, endPlayerPhase, advancePhase, aiStep, evaluateOutcome, parseSave, distance, deployCommander, DEPLOYMENT_TILES, type BattleState } from '../src/core.ts';
+import { createBattle, findUnit, reachable, terrainAt, moveUnit, undoMove, canAttack, attackUnit, waitUnit, encourage, usePotion, potionTargets, endPlayerPhase, advancePhase, aiStep, evaluateOutcome, parseSave, distance, deployCommander, DEPLOYMENT_TILES, inBounds, applyScenarioEvents, bonusComplete, type BattleState } from '../src/core.ts';
 import { Preparation } from '../src/preparation.ts';
+import { SCENARIOS, type ScenarioId } from '../src/scenarios.ts';
 
 const cao = (s: BattleState) => findUnit(s, 'cao')!;
 
@@ -173,4 +174,96 @@ test('a complete representative battle reaches victory through legal actions and
   }
   assert.equal(s.outcome, 'won'); assert.ok(s.attacksMade > 0); assert.ok(s.round <= 12);
   assert.ok(parseSave(JSON.stringify(s)));
+});
+
+test('legacy Yeongcheon saves migrate without losing committed actions or RNG',()=>{
+  const s=createBattle();moveUnit(s,'cao',{x:8,y:9});
+  const legacy=JSON.parse(JSON.stringify(s));delete legacy.scenarioId;delete legacy.events;
+  const restored=parseSave(JSON.stringify(legacy));assert.ok(restored);assert.equal(restored.scenarioId,'yeongcheon');
+  assert.equal(restored.seed,s.seed);assert.deepEqual(restored.pendingMove,s.pendingMove);assert.equal(undoMove(restored),true);
+});
+
+test('each mission has its own bounds, valid roster, traversable gate and deployment area',()=>{
+  for(const scenario of SCENARIOS){
+    const s=createBattle('protect',scenario.year,scenario.id);assert.ok(parseSave(JSON.stringify(s)),scenario.id);
+    assert.equal(inBounds({x:scenario.cols-1,y:scenario.rows-1},scenario.id),true);
+    assert.equal(inBounds({x:scenario.cols,y:scenario.rows-1},scenario.id),false);
+    for(const position of scenario.deployment){const p=new Preparation('protect',scenario.id);assert.equal(p.deploy(position),true);assert.ok(parseSave(JSON.stringify(p.battle)));}
+  }
+  assert.equal(terrainAt({x:11,y:0},'sishui'),'road');assert.equal(terrainAt({x:8,y:0},'sishui'),'wall');
+  assert.equal(terrainAt({x:23,y:7},'hulao'),'road');assert.equal(terrainAt({x:23,y:3},'hulao'),'wall');
+});
+
+test('healing supports adjacent injured allies and refuses enemies, full HP or distant targets',()=>{
+  const s=createBattle('protect',190,'sishui');cao(s).x=7;cao(s).y=5;
+  assert.ok(potionTargets(s).some(u=>u.id==='sun'));assert.equal(usePotion(s,'hua'),false);assert.equal(usePotion(s,'liu'),false);
+  const sun=findUnit(s,'sun')!;assert.equal(usePotion(s,'sun'),true);assert.equal(sun.hp,103);assert.equal(s.potions,2);assert.equal(cao(s).acted,true);
+  assert.equal(usePotion(s,'sun'),false);assert.equal(undoMove(s),false);
+  const fresh=createBattle('protect',190,'sishui');assert.equal(usePotion(fresh,'sun'),false);assert.equal(usePotion(fresh),false);
+});
+
+test('Guan Yu reinforcement is deferred if blocked and never heals or duplicates after restoration',()=>{
+  const s=createBattle('protect',190,'sishui');s.round=3;
+  const cells=[{x:2,y:6},{x:2,y:7},{x:2,y:8},{x:3,y:7},{x:3,y:8},{x:1,y:7}];
+  s.units.filter(u=>u.hp>0).slice(0,6).forEach((u,i)=>Object.assign(u,cells[i]));
+  applyScenarioEvents(s);assert.deepEqual(s.events,[]);assert.equal(findUnit(s,'guan')!.hp,0);
+  cao(s).x=8;cao(s).y=11;applyScenarioEvents(s);
+  assert.deepEqual(s.events,['guan-arrived']);const guan=findUnit(s,'guan')!;assert.equal(guan.x,2);assert.equal(guan.y,6);
+  guan.hp-=17;const restored=parseSave(JSON.stringify(s));assert.ok(restored);applyScenarioEvents(restored);
+  assert.equal(findUnit(restored,'guan')!.hp,guan.hp);assert.equal(restored.logs.filter(l=>l.includes('지원군이')).length,1);
+});
+
+test('Lu Bu holds the gate for two rounds and charges only after the recorded third-round event',()=>{
+  const s=createBattle('protect',190,'hulao'),boss=findUnit(s,'lubu')!;const start={x:boss.x,y:boss.y};
+  for(const round of [1,2]){s.round=round;s.phase='enemy';boss.acted=false;boss.moved=false;aiStep(s);assert.deepEqual({x:boss.x,y:boss.y},start);}
+  s.round=3;s.phase='player';applyScenarioEvents(s);applyScenarioEvents(s);assert.deepEqual(s.events,['lubu-charge']);
+  s.phase='enemy';boss.acted=false;boss.moved=false;aiStep(s);assert.ok(distance(boss,start)>0);assert.ok(parseSave(JSON.stringify(s)));
+});
+
+test('mission ids, foreign rosters, premature or duplicated events cannot be loaded',()=>{
+  const s=createBattle('protect',190,'sishui');
+  for(const change of [
+    (p:any)=>{p.scenarioId='unknown';},(p:any)=>{p.scenarioId='hulao';},
+    (p:any)=>{p.events=['guan-arrived'];},(p:any)=>{p.events=['guan-arrived','guan-arrived'];},
+    (p:any)=>{p.units.find((u:any)=>u.id==='guan').hp=100;},(p:any)=>{p.fireTriggered=true;},
+  ]){const bad=structuredClone(s);change(bad);assert.equal(parseSave(JSON.stringify(bad)),null);}
+});
+
+test('rescue and ally survival are bonus goals and do not replace the boss victory condition',()=>{
+  const rescue=createBattle('protect',190,'sishui');findUnit(rescue,'sun')!.hp=0;
+  assert.equal(bonusComplete(rescue),false);assert.equal(evaluateOutcome(rescue),'playing');findUnit(rescue,'hua')!.hp=0;
+  assert.equal(evaluateOutcome(rescue),'won');assert.ok(parseSave(JSON.stringify(rescue)));
+  const hulao=createBattle('protect',190,'hulao');assert.equal(bonusComplete(hulao),true);
+  findUnit(hulao,'liu')!.hp=0;findUnit(hulao,'zhang')!.hp=0;assert.equal(bonusComplete(hulao),false);assert.equal(evaluateOutcome(hulao),'playing');
+});
+
+test('new missions lose at their own turn limits and restore the failure result',()=>{
+  for(const id of ['sishui','hulao'] as ScenarioId[]){
+    const scenario=SCENARIOS.find(s=>s.id===id)!,s=createBattle('protect',190,id);
+    s.round=scenario.turnLimit;applyScenarioEvents(s);s.phase='enemy';s.units.filter(u=>u.team==='enemy').forEach(u=>u.acted=true);
+    assert.equal(advancePhase(s),true);assert.equal(s.outcome,'lost');assert.ok(parseSave(JSON.stringify(s)));
+  }
+});
+
+for(const scenarioId of ['sishui','hulao'] as ScenarioId[])test(`${scenarioId} can be won through legal actions and resumed after every AI step`,()=>{
+  let s=createBattle('protect',190,scenarioId);let actions=0;
+  while(s.outcome==='playing'){
+    const player=cao(s);
+    if(player.hp<player.maxHp*.5&&s.potions)usePotion(s);
+    else {
+      const enemies=s.units.filter(u=>u.team==='enemy'&&u.hp>0);
+      if(!enemies.some(e=>canAttack(s,player,e))){
+        const options=reachable(s,player).sort((a,b)=>Math.min(...enemies.map(e=>distance(a,e)))-Math.min(...enemies.map(e=>distance(b,e)))||a.cost-b.cost);
+        if(options[0]&&distance(player,options[0]))moveUnit(s,'cao',options[0]);
+      }
+      const target=enemies.filter(e=>canAttack(s,player,e)).sort((a,b)=>a.hp-b.hp)[0];
+      if(target)attackUnit(s,'cao',target.id);else waitUnit(s,'cao');
+    }
+    if(s.outcome!=='playing')break;endPlayerPhase(s);
+    while(s.phase!=='player'&&s.outcome==='playing'){
+      if(!aiStep(s))advancePhase(s);assert.ok(++actions<400,'AI must terminate');
+      const restored=parseSave(JSON.stringify(s));assert.ok(restored,`restorable ${scenarioId} round ${s.round}`);s=restored;
+    }
+  }
+  assert.equal(s.outcome,'won',s.logs.join('\n'));assert.ok(s.attacksMade>0);assert.ok(parseSave(JSON.stringify(s)));
 });

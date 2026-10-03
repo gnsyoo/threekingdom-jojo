@@ -1,7 +1,19 @@
 import { parseSave, type BattleState } from './core.ts';
+import { isScenarioId, type ScenarioId } from './scenarios.ts';
 
 const SAVE = 'wei-tactics.battle.v1';
 const BACKUP = 'wei-tactics.battle.backup.v1';
+const CAMPAIGN = 'wei-tactics.campaign.v1';
+export function loadCompleted():ScenarioId[] {
+  try {
+    const data=JSON.parse(localStorage.getItem(CAMPAIGN)??'[]');
+    return Array.isArray(data)?[...new Set(data.filter(isScenarioId))]:[];
+  }catch{return [];}
+}
+export function recordVictory(s:BattleState):boolean {
+  if(s.outcome!=='won')return true;
+  try{localStorage.setItem(CAMPAIGN,JSON.stringify([...new Set([...loadCompleted(),s.scenarioId])]));return true;}catch{return false;}
+}
 export function loadBattle(): { state: BattleState | null; recovered: boolean; damaged: boolean } {
   try {
     const raw = localStorage.getItem(SAVE);

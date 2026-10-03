@@ -1,7 +1,7 @@
 export const assetUrl = (file: string) => `${import.meta.env.BASE_URL}assets/${file}`;
 export function portraitHtml(id: string, name: string, className = ''): string {
   if (id === 'cao') return `<img class="painted-portrait ${className}" src="${assetUrl('cao-cao.png')}" alt="${name}" />`;
-  return `<div class="painted-portrait portrait-atlas portrait-${id} ${className}" role="img" aria-label="${name}"></div>`;
+  return `<div class="painted-portrait portrait-atlas ${['sun','hua','lubu'].includes(id)?'portrait-campaign':''} portrait-${id} ${className}" role="img" aria-label="${name}"></div>`;
 }
 
 const art: Record<string, string> = {
