@@ -1,0 +1,21 @@
+const paths: Record<string, string> = {
+  sword: '<path d="m15 3 6-1-1 6-9 9-4-4zM5 13l6 6M3 21l4-4M3 17l4 4"/>',
+  move: '<path d="M8 3v6l-3 4v7h6l1-7-2-3V3zM15 5v5l-2 4v6h6l1-6-3-3V5z"/>',
+  scroll: '<path d="M6 3h13v14c0 2-2 4-4 4H5a3 3 0 0 1 0-6h10v3M6 3v12M10 7h5M10 10h5"/>',
+  potion: '<path d="M9 2h6v4l3 5a7 7 0 0 1-12 0l3-5zM8 14h8M9 5h6"/>',
+  wait: '<path d="M7 2h10M7 22h10M8 2v5l8 10v5M16 2v5L8 17v5"/>',
+  flag: '<path d="M5 22V3M5 4h14l-3 4 3 4H5"/>',
+  pause: '<path d="M8 5v14M16 5v14"/>',
+  back: '<path d="m10 5-7 7 7 7M3 12h18"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  minus: '<path d="M5 12h14"/>',
+  map: '<path d="m2 5 6-3 8 3 6-3v17l-6 3-8-3-6 3zM8 2v17M16 5v17"/>',
+  grid: '<rect x="3" y="3" width="18" height="18" rx="1"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/>',
+  check: '<path d="m5 12 4 4L19 6"/>',
+  sound: '<path d="m3 9 5 0 5-5v16l-5-5H3zM17 8a7 7 0 0 1 0 8M20 5a11 11 0 0 1 0 14"/>',
+  shield: '<path d="m12 2 8 3v6c0 5-4 8-8 11-4-3-8-6-8-11V5z"/>',
+  chevron: '<path d="m9 5 7 7-7 7"/>',
+  save: '<path d="M4 3h13l4 4v14H3V3zM7 3v6h9V3M7 21v-8h10v8"/>',
+  heart: '<path d="M12 21 3 12C-2 5 7-1 12 6 17-1 26 5 21 12z"/>',
+};
+export const icon = (name: string, size = 22) => `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name] ?? paths.sword}</svg>`;
