@@ -15,6 +15,8 @@ async function start(page: Page) {
   await page.getByRole('button', { name: '계속' }).click();
   await page.getByRole('button', { name: '계속' }).click();
   await page.getByRole('button', { name: /민가 보호를 준비한다/ }).click();
+  await page.locator('[data-action="choice-confirm"]').click();
+  await page.locator('[data-action="depart"]').click();
   await expect(page.locator('#map-loading')).toHaveCount(0);
   await page.waitForFunction(() => (window as any).__WEI_DEBUG__?.ready());
 }
@@ -135,6 +137,8 @@ test('touchscreen taps move the commander and a drag pans without issuing a comm
   await page.getByRole('button', { name: '계속' }).tap();
   await page.getByRole('button', { name: '계속' }).tap();
   await page.getByRole('button', { name: /민가 보호를 준비한다/ }).tap();
+  await page.locator('[data-action="choice-confirm"]').tap();
+  await page.locator('[data-action="depart"]').tap();
   await expect(page.locator('#map-loading')).toHaveCount(0);
   const p = await page.evaluate(() => (window as any).__WEI_DEBUG__.tile({ x: 8, y: 9 }));
   await page.touchscreen.tap(p.x, p.y);
@@ -151,4 +155,63 @@ test('touchscreen taps move the commander and a drag pans without issuing a comm
   expect((await state(page)).units[0].x).toBe(6);
   await expect(page.locator('[data-action="confirm"]')).toHaveCount(0);
   await context.close();
+});
+
+test('concept preparation menus preserve purchases and confirmed deployment into battle',async({page})=>{
+  await page.goto('/');await page.locator('[data-action="new"]').click();
+  await page.getByRole('button',{name:'계속',exact:true}).click();await page.getByRole('button',{name:'계속',exact:true}).click();
+  await page.locator('[data-action="choice-advance"]').click();await page.locator('[data-action="choice-confirm"]').click();
+  const columns=await page.locator('.prep-columns > *').evaluateAll(nodes=>nodes.map(n=>n.getBoundingClientRect().x));
+  expect(columns[0]).toBeLessThan(columns[1]);expect(columns[1]).toBeLessThan(columns[2]);
+  for(const action of ['prep-equipment','prep-deployment','prep-shop','depart']){
+    const button=page.locator(`.prep-actions [data-action="${action}"]`);expect((await button.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+  }
+  await page.locator('[data-action="prep-unit"][data-unit-id="guan"]').click();
+  await page.locator('.prep-actions [data-action="prep-equipment"]').click();await expect(page.locator('.modal').getByText('청룡도',{exact:true})).toBeVisible();
+  await page.locator('.modal-footer [data-action="close-modal"]').click();
+  await page.locator('.prep-actions [data-action="prep-shop"]').click();await page.locator('[data-action="prep-buy"]').click();
+  await expect(page.getByText('보유 3 / 3개 · 구매 100냥',{exact:true})).toBeVisible();await expect(page.locator('[data-action="prep-buy"]')).toBeDisabled();
+  await page.locator('.modal-footer [data-action="close-modal"]').click();
+  await page.locator('.prep-actions [data-action="prep-deployment"]').click();await page.locator('[data-action="prep-position"][data-x="5"][data-y="8"]').click();
+  await page.locator('[data-action="prep-deploy-confirm"]').click();
+  await page.locator('[data-action="prep-back"]').click();await page.locator('[data-action="choice-confirm"]').click();
+  await page.locator('[data-action="depart"]').click();await page.waitForFunction(()=>(window as any).__WEI_DEBUG__?.ready());
+  const s=await state(page);expect(s.potions).toBe(3);expect(s.units[0].x).toBe(5);expect(s.units[0].y).toBe(8);expect(s.units[0].buff).toBe(1);
+  await page.reload();await page.getByRole('button',{name:/전투 이어하기/}).click();await page.waitForFunction(()=>(window as any).__WEI_DEBUG__?.ready());
+  expect((await state(page)).units[0].x).toBe(5);
+});
+
+test('dialogue automatic playback stops at the choice and records the council',async({page})=>{
+  await page.goto('/');await page.locator('[data-action="new"]').click();await page.clock.install();
+  await page.locator('[data-action="story-auto"]').click();await page.clock.runFor(14000);
+  await expect(page.locator('[data-action="choice-confirm"]')).toBeDisabled();
+  await expect(page.locator('[data-action="story-auto"]')).toHaveAttribute('aria-pressed','false');
+  await page.locator('[data-action="story-log"]').click();await expect(page.locator('.journal-list li')).toHaveCount(3);
+});
+
+test('walking cycles sprite frames and attacks play before the next phase',async({page})=>{
+  await start(page);await tile(page,{x:9,y:7});await page.locator('[data-action="confirm"]').click();
+  await page.waitForFunction(()=>(window as any).__WEI_DEBUG__.motion().active.some((u:any)=>u.id==='cao'&&u.texture==='walk'&&u.playing));
+  const first=await page.evaluate(()=>(window as any).__WEI_DEBUG__.motion().active.find((u:any)=>u.id==='cao').frame);
+  await page.waitForFunction(f=>(window as any).__WEI_DEBUG__.motion().active.some((u:any)=>u.id==='cao'&&u.texture==='walk'&&u.frame!==f),first);
+  await page.waitForFunction(()=>!(window as any).__WEI_DEBUG__.motion().busy);
+  await page.locator('[data-action="wait"]').click();await page.locator('[data-action="end-turn"]').click();
+  await page.waitForFunction(()=>(window as any).__WEI_DEBUG__.motion().attacks>0);
+  await page.waitForFunction(()=>(window as any).__WEI_DEBUG__.state().phase==='player');
+  await page.locator('[data-action="pause"]').first().click();await page.locator('[data-action="speed-fast"]').click();
+  await page.locator('.modal-footer [data-action="close-modal"]').click();
+  let s=await state(page);const player=s.units[0];
+  if(!s.units.some(u=>canAttack(s,player,u))){
+    const destination=reachable(s,player).find(p=>s.units.some(u=>canAttack(s,{...player,x:p.x,y:p.y},u)));expect(destination).toBeTruthy();
+    await page.locator('[data-action="move"]').click();await tile(page,destination!);await page.locator('[data-action="confirm"]').click();
+    await page.waitForFunction(()=>!(window as any).__WEI_DEBUG__.motion().busy);s=await state(page);
+  }
+  const target=s.units.find(u=>canAttack(s,s.units[0],u));expect(target).toBeTruthy();
+  const before=await page.evaluate(()=>(window as any).__WEI_DEBUG__.motion().attacks);
+  await page.locator('[data-action="attack"]').click();await tile(page,target!);await page.locator('[data-action="confirm"]').click();
+  await page.waitForFunction(n=>(window as any).__WEI_DEBUG__.motion().attacks>n,before,{timeout:8000});
+  await page.waitForFunction(()=>!(window as any).__WEI_DEBUG__.motion().busy);
+  const motion=await page.evaluate(()=>(window as any).__WEI_DEBUG__.motion());
+  const attackFrames=motion.frames.filter((f:any)=>f.id==='cao'&&f.kind==='attack').map((f:any)=>f.frame);
+  expect(motion.impacts).toBeGreaterThan(0);expect(new Set(attackFrames).size,JSON.stringify(attackFrames)).toBeGreaterThanOrEqual(3);
 });

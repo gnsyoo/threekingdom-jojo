@@ -38,6 +38,11 @@ export const TERRAIN_INFO: Record<Terrain, { name: string; cost: number; defense
 export const inBounds = (p: Point) => Number.isInteger(p.x) && Number.isInteger(p.y) && p.x >= 0 && p.y >= 0 && p.x < COLS && p.y < ROWS;
 export const distance = (a: Point, b: Point) => Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
 export const key = (p: Point) => `${p.x},${p.y}`;
+export const DEPLOYMENT_TILES: Point[] = [
+  { x: 5, y: 8 }, { x: 6, y: 8 }, { x: 7, y: 8 },
+  { x: 5, y: 9 }, { x: 6, y: 9 }, { x: 7, y: 9 },
+  { x: 5, y: 10 }, { x: 6, y: 10 }, { x: 7, y: 10 },
+];
 export function terrainAt(p: Point): Terrain {
   if (!inBounds(p)) return 'wall';
   if (p.y === 6 && p.x >= 14 && p.x <= 16) return 'bridge';
@@ -86,6 +91,16 @@ export const hostile = (a: Unit, b: Unit) => (a.team === 'enemy') !== (b.team ==
 export const alive = (u: Unit) => u.hp > 0;
 const controlled = (s: BattleState, u: Unit) => s.outcome === 'playing' && s.phase === u.team && u.hp > 0 && !u.acted;
 export const log = (s: BattleState, message: string) => { s.logs.push(message); s.logs = s.logs.slice(-30); };
+
+/** Preparation may move the commander only before the first committed action. */
+export function deployCommander(s: BattleState, to: Point): boolean {
+  const cao = findUnit(s, 'cao');
+  if (!cao || s.round !== 1 || s.phase !== 'player' || s.outcome !== 'playing' || s.attacksMade !== 0 || s.fireTriggered || s.pendingMove) return false;
+  if (s.units.some(u => u.moved || u.acted || u.hp !== u.maxHp || u.mp !== u.maxMp)) return false;
+  if (!DEPLOYMENT_TILES.some(p => key(p) === key(to)) || (unitAt(s, to)?.id && unitAt(s, to)?.id !== 'cao')) return false;
+  cao.x = to.x; cao.y = to.y;
+  return true;
+}
 
 export function reachable(s: BattleState, u: Unit): Reachable[] {
   if (!alive(u)) return [];

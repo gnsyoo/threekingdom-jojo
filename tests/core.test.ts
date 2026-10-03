@@ -1,8 +1,29 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createBattle, findUnit, reachable, terrainAt, moveUnit, undoMove, canAttack, attackUnit, waitUnit, encourage, usePotion, endPlayerPhase, advancePhase, aiStep, evaluateOutcome, parseSave, distance, type BattleState } from '../src/core.ts';
+import { createBattle, findUnit, reachable, terrainAt, moveUnit, undoMove, canAttack, attackUnit, waitUnit, encourage, usePotion, endPlayerPhase, advancePhase, aiStep, evaluateOutcome, parseSave, distance, deployCommander, DEPLOYMENT_TILES, type BattleState } from '../src/core.ts';
+import { Preparation } from '../src/preparation.ts';
 
 const cao = (s: BattleState) => findUnit(s, 'cao')!;
+
+test('deployment stays in the starting region and cannot move a commander after an action',()=>{
+  for(const point of DEPLOYMENT_TILES){const s=createBattle();assert.equal(deployCommander(s,point),true);assert.deepEqual({x:cao(s).x,y:cao(s).y},point);assert.ok(parseSave(JSON.stringify(s)));}
+  const s=createBattle(); const before=JSON.stringify(s);
+  assert.equal(deployCommander(s,{x:13,y:2}),false); assert.equal(JSON.stringify(s),before);
+  moveUnit(s,'cao',{x:7,y:9});assert.equal(deployCommander(s,{x:5,y:8}),false);
+});
+test('preparation purchases enforce both stock capacity and the available budget',()=>{
+  const p=new Preparation('advance');assert.equal(p.buyPotion(),true);assert.equal(p.battle.potions,3);assert.equal(p.gold,100);
+  assert.equal(p.buyPotion(),false);assert.equal(p.gold,100);
+  for(let i=0;i<3;i++)assert.equal(p.sellPotion(),true);
+  assert.equal(p.sellPotion(),false);assert.equal(p.gold,250);
+  assert.equal(p.buyPotion(),true);assert.equal(p.buyPotion(),true);assert.equal(p.gold,50);
+  assert.equal(p.buyPotion(),false);assert.equal(p.battle.potions,2);
+});
+test('a prepared start and supplies survive saving, movement and undo',()=>{
+  const p=new Preparation('advance');p.buyPotion();p.deploy({x:5,y:8});
+  const s=parseSave(JSON.stringify(p.battle));assert.ok(s);assert.equal(s.potions,3);assert.equal(cao(s).buff,1);
+  assert.equal(moveUnit(s,'cao',{x:6,y:8}),true);assert.equal(undoMove(s),true);assert.equal(cao(s).x,5);assert.equal(cao(s).y,8);
+});
 
 test('weighted movement excludes deep water and occupied destinations, but permits the bridge', () => {
   const s = createBattle(); cao(s).x = 14; cao(s).y = 5;

@@ -1,12 +1,13 @@
 import Phaser from 'phaser';
-import { COLS, ROWS, key, terrainAt, type BattleState, type Point, type Reachable, type Hit } from './core.ts';
+import { COLS, ROWS, key, reachable as movementRange, findUnit, type BattleState, type Point, type Reachable, type Hit, type Unit } from './core.ts';
 
 export const TILE = 64;
 export type MapMode = 'inspect' | 'move' | 'attack';
 export interface MapPresentation {
   state: BattleState; selectedId: string; mode: MapMode;
-  reachable: Reachable[]; preview: Point[]; target: Point | null; grid: boolean;
+  reachable: Reachable[]; preview: Point[]; target: Point | null; grid: boolean; fast: boolean;
 }
+interface MotionAtlas { units: { scale: number; frames: { x:number; y:number; width:number; height:number; pivotX:number; pivotY:number }[] }[] }
 export class BattleScene extends Phaser.Scene {
   onTile: (point: Point) => void = () => {};
   onReady: () => void = () => {};
@@ -18,17 +19,38 @@ export class BattleScene extends Phaser.Scene {
   private pointerStart = { x: 0, y: 0 }; private lastPointer = { x: 0, y: 0 };
   private dragged = false; private pinch = 0; private pinchUntil = 0;
   private ready = false; private overview = false;
+  private motionData!: Record<'walk'|'attack',MotionAtlas>;
+  private activeWalks = new Set<string>();
+  private pendingHitSequences = 0;
+  private visualUntil = 0;
+  private retiring = new Set<string>();
+  private counts = { walks:0, attacks:0, impacts:0 };
+  private motionFrames: { id:string; kind:string; frame:string|number }[] = [];
 
   constructor() { super('battle'); }
   preload() {
     this.load.image('ground', `${import.meta.env.BASE_URL}assets/battlefield.png`);
     this.load.image('troops', `${import.meta.env.BASE_URL}assets/units.png`);
+    this.load.image('walk', `${import.meta.env.BASE_URL}assets/units-walk.png`);
+    this.load.image('attack', `${import.meta.env.BASE_URL}assets/units-attack.png`);
+    this.load.json('unit-motion', `${import.meta.env.BASE_URL}assets/unit-motion.json`);
   }
   create() {
     const atlas = this.textures.get('troops');
     const source = atlas.getSourceImage() as HTMLImageElement;
     const w = source.width / 4, h = source.height / 2;
     for (let i = 0; i < 8; i++) atlas.add(`unit-${i}`, 0, (i % 4) * w, Math.floor(i / 4) * h, w, h);
+    this.motionData = this.cache.json.get('unit-motion');
+    for (const kind of ['walk','attack'] as const) {
+      const texture=this.textures.get(kind);
+      this.motionData[kind].units.forEach((unit,index)=>{
+        unit.frames.forEach((rect,pose)=>{
+          const frame=texture.add(`${index}-${pose}`,0,rect.x,rect.y,rect.width,rect.height);
+          if(frame){frame.customPivot=true;frame.pivotX=rect.pivotX;frame.pivotY=rect.pivotY;}
+        });
+        this.anims.create({key:`${kind}-${index}`,frames:unit.frames.map((_f,pose)=>({key:kind,frame:`${index}-${pose}`})),frameRate:kind==='walk'?12:10,repeat:kind==='walk'?-1:0,skipMissedFrames:false});
+      });
+    }
     this.add.image(0, 0, 'ground').setOrigin(0).setDisplaySize(COLS * TILE, ROWS * TILE);
     const marker = this.add.graphics();
     marker.lineStyle(2, 0xb9dcaa, .55).strokeCircle(3.5 * TILE, 3.5 * TILE, 15);
@@ -64,7 +86,8 @@ export class BattleScene extends Phaser.Scene {
   private configureCamera(initial: boolean) {
     const camera = this.cameras.main;
     const fit = Math.min(this.scale.width / (COLS * TILE), this.scale.height / (ROWS * TILE));
-    camera.setZoom(this.overview ? fit : Math.max(fit, this.scale.width < 850 ? .73 : .75));
+    const cover = Math.max(this.scale.width / (COLS * TILE), this.scale.height / (ROWS * TILE));
+    camera.setZoom(this.overview ? fit : Math.max(cover, this.scale.width < 850 ? .73 : .75));
     this.updateBounds();
     const cao = this.current?.state.units.find(u => u.id === 'cao');
     if (initial && this.scale.height < 440 && cao) this.centerOn(cao);
@@ -113,14 +136,25 @@ export class BattleScene extends Phaser.Scene {
     }
     if (target) g.lineStyle(3, 0xe6af71, 1).strokeRect(target.x * TILE + 3, target.y * TILE + 3, TILE - 6, TILE - 6);
     for (const u of state.units) {
-      if (!u.hp) { this.nodes.get(u.id)?.destroy(); this.nodes.delete(u.id); continue; }
+      if (!u.hp) {
+        if(this.nodes.has(u.id) && !this.retiring.has(u.id)) {
+          this.retiring.add(u.id);
+          this.time.delayedCall(8000,()=>this.removeUnit(u.id));
+        }
+        if(!this.nodes.has(u.id))continue;
+      }
       const previous = this.positions.get(u.id);
       let node = this.nodes.get(u.id);
       if (!node) {
         node = this.add.container((u.x + .5) * TILE, (u.y + 1) * TILE - 7).setDepth(10 + u.y);
         node.add(this.add.ellipse(0, -2, u.sprite === 2 ? 54 : 38, 11, 0x12211a, .48));
-        const sprite = this.add.image(0, 0, 'troops', `unit-${u.sprite}`).setOrigin(.5, .98).setDisplaySize(u.sprite === 2 ? 82 : 70, u.sprite === 2 ? 109 : 94);
+        const sprite = this.add.sprite(0, 0, 'troops', `unit-${u.sprite}`).setOrigin(.5, .98).setDisplaySize(u.sprite === 2 ? 82 : 70, u.sprite === 2 ? 109 : 94);
         sprite.name = 'sprite'; node.add(sprite);
+        sprite.on(Phaser.Animations.Events.ANIMATION_UPDATE,(_animation:Phaser.Animations.Animation,frame:Phaser.Animations.AnimationFrame)=>{
+          this.motionFrames.push({id:u.id,kind:frame.textureKey,frame:frame.textureFrame});
+          if(this.motionFrames.length>160)this.motionFrames.shift();
+        });
+        this.tweens.add({targets:sprite,y:-1.5,duration:650,yoyo:true,repeat:-1,ease:'Sine.easeInOut'});
         const flag = this.add.graphics(); flag.name = 'flag'; node.add(flag);
         const health = this.add.graphics(); health.name = 'health'; node.add(health);
         const label = this.add.text(0, 13, u.name, { fontFamily: '"Noto Serif KR", serif', fontSize: '12px', color: u.team === 'enemy' ? '#f7d8ba' : '#f1e9c8', stroke: '#17251d', strokeThickness: 3 }).setOrigin(.5, 0);
@@ -129,11 +163,14 @@ export class BattleScene extends Phaser.Scene {
       const x = (u.x + .5) * TILE, y = (u.y + 1) * TILE - 7;
       node.setDepth(10 + u.y);
       if (previous && key(previous) !== key(u)) {
-        this.tweens.killTweensOf(node); this.tweens.add({ targets: node, x, y, duration: 280, ease: 'Sine.easeInOut' });
-        (node.getByName('sprite') as Phaser.GameObjects.Image).setFlipX(u.x < previous.x);
+        const route=structuredClone(state), moving=findUnit(route,u.id)!;
+        // A move and a lethal counter are committed together; still show the approach.
+        moving.x=previous.x; moving.y=previous.y; moving.hp=moving.maxHp;
+        const path=movementRange(route,moving).find(p=>key(p)===key(u))?.path ?? [{x:u.x,y:u.y}];
+        this.walk(u,node,path,previous);
       } else if (!previous) node.setPosition(x, y);
       this.positions.set(u.id, { x: u.x, y: u.y });
-      const sprite = node.getByName('sprite') as Phaser.GameObjects.Image;
+      const sprite = node.getByName('sprite') as Phaser.GameObjects.Sprite;
       sprite.setAlpha(u.acted && state.phase === u.team ? .66 : 1);
       const flag = node.getByName('flag') as Phaser.GameObjects.Graphics;
       const color = u.team === 'player' ? 0x6db8e8 : u.team === 'ally' ? 0x74c1aa : 0xd38551;
@@ -160,15 +197,100 @@ export class BattleScene extends Phaser.Scene {
       this.tweens.add({ targets: this.fire, alpha: .55, duration: 380, yoyo: true, repeat: -1 });
     }
   }
-  hits(hits: Hit[]) {
-    if (!this.current) return;
-    hits.forEach((hit, i) => {
-      const u = this.current!.state.units.find(u => u.id === hit.targetId); if (!u) return;
-      this.time.delayedCall(i * 250, () => {
-        const text = this.add.text((u.x + .5) * TILE, (u.y + .1) * TILE, hit.missed ? '회피' : `${hit.counter ? '반격 ' : ''}−${hit.damage}`, { fontFamily: 'serif', fontSize: '24px', fontStyle: 'bold', color: hit.missed ? '#dcd7bd' : '#ffe0bd', stroke: '#33261b', strokeThickness: 4 }).setOrigin(.5).setDepth(100);
-        this.tweens.add({ targets: text, y: text.y - 35, alpha: 0, duration: 1000, onComplete: () => text.destroy() });
-      });
+  private idle(u: Unit, sprite: Phaser.GameObjects.Sprite) {
+    if(!sprite.active) return;
+    sprite.stop().setTexture('troops',`unit-${u.sprite}`).setOrigin(.5,.98).setDisplaySize(u.sprite===2?82:70,u.sprite===2?109:94);
+  }
+  private playMotion(kind: 'walk'|'attack',u:Unit,sprite:Phaser.GameObjects.Sprite) {
+    const scale=this.motionData[kind].units[u.sprite].scale;
+    sprite.play(`${kind}-${u.sprite}`,true).setScale(scale*.8,scale);
+    sprite.anims.timeScale=this.current?.fast?1.6:1;
+  }
+  private walk(u:Unit,node:Phaser.GameObjects.Container,path:Point[],from:Point) {
+    if(!path.length) return;
+    this.tweens.killTweensOf(node);
+    const sprite=node.getByName('sprite') as Phaser.GameObjects.Sprite;
+    this.playMotion('walk',u,sprite); this.counts.walks++;
+    const duration=this.current?.fast?72:135;
+    const end=this.time.now+path.length*duration;
+    this.activeWalks.add(u.id); this.visualUntil=Math.max(this.visualUntil,end);
+    this.tweens.chain({targets:node,tweens:path.map((point,index)=>({
+      x:(point.x+.5)*TILE,y:(point.y+1)*TILE-7,duration,ease:'Linear',
+      onStart:()=>{const previous=path[index-1]??from;if(point.x!==previous.x)sprite.setFlipX(point.x<previous.x);node.setDepth(10+point.y);},
+    })),onComplete:()=>{this.activeWalks.delete(u.id);this.idle(u,sprite);}});
+  }
+  private strike(attackerId:string,hit:Hit):Promise<void> {
+    const u=this.current && findUnit(this.current.state,attackerId);
+    const target=this.current && findUnit(this.current.state,hit.targetId);
+    const node=this.nodes.get(attackerId);
+    const duration=this.current?.fast?300:450;
+    if(!u||!target||!node?.active){this.impact(hit);return Promise.resolve();}
+    return new Promise(resolve=>{
+      const sprite=node.getByName('sprite') as Phaser.GameObjects.Sprite;
+      const x=node.x,y=node.y,dx=(target.x-u.x),dy=(target.y-u.y),length=Math.hypot(dx,dy)||1;
+      let impacted=false;
+      const impact=()=>{if(!impacted){impacted=true;this.impact(hit);}};
+      const peak=(_animation:Phaser.Animations.Animation,frame:Phaser.Animations.AnimationFrame)=>{if(frame.textureKey==='attack'&&frame.index>=3)impact();};
+      const completeKey=`${Phaser.Animations.Events.ANIMATION_COMPLETE_KEY}attack-${u.sprite}`;
+      const complete=()=>{
+        sprite.off(Phaser.Animations.Events.ANIMATION_UPDATE,peak);
+        sprite.off(completeKey,complete);sprite.off(Phaser.GameObjects.Events.DESTROY,complete);
+        impact();
+        if(node.active){node.setPosition(x,y);this.idle(u,sprite);}
+        resolve();
+      };
+      sprite.on(Phaser.Animations.Events.ANIMATION_UPDATE,peak);
+      sprite.once(completeKey,complete);sprite.once(Phaser.GameObjects.Events.DESTROY,complete);
+      sprite.setFlipX(target.x<u.x);this.playMotion('attack',u,sprite);this.counts.attacks++;
+      this.tweens.add({targets:node,x:x+dx/length*12,y:y+dy/length*8,duration:duration*.28,yoyo:true,ease:'Sine.easeInOut'});
+      if(u.role==='궁병') {
+        const arrow=this.add.graphics().setDepth(90).setPosition(x,y-32);
+        arrow.lineStyle(2,0xead4a3).lineBetween(-8,0,8,0);
+        arrow.setRotation(Math.atan2(dy,dx));
+        this.tweens.add({targets:arrow,x:(target.x+.5)*TILE,y:(target.y+.45)*TILE,delay:duration*.2,duration:duration*.35,onComplete:()=>arrow.destroy()});
+      }
     });
+  }
+  hits(hits:Hit[],attackerId:string) {
+    if(!this.current || !hits.length) return;
+    this.pendingHitSequences++;
+    void (async()=>{
+      try {
+        while(this.activeWalks.has(attackerId)) await this.pauseMotion(30);
+        for(const hit of hits){
+          await this.strike(hit.counter?hits[0].targetId:attackerId,hit);
+          await this.pauseMotion(70);
+        }
+      }finally{this.pendingHitSequences--;}
+    })();
+  }
+  private impact(hit:Hit) {
+    const u=this.current && findUnit(this.current.state,hit.targetId); if(!u)return;
+    this.visualUntil=Math.max(this.visualUntil,this.time.now+250);
+    const node=this.nodes.get(u.id),sprite=node?.getByName('sprite') as Phaser.GameObjects.Sprite|undefined;
+    this.counts.impacts++;
+    if(sprite?.active){
+      if(!hit.missed){sprite.setTintFill(0xffe5ba);this.time.delayedCall(75,()=>{if(sprite.active)sprite.clearTint();});}
+      this.tweens.add({targets:sprite,x:hit.missed?8:3,duration:65,yoyo:true,repeat:hit.missed?0:1,onComplete:()=>{if(sprite.active)sprite.x=0;}});
+    }
+    if(!hit.missed) {
+      const slash=this.add.graphics().setDepth(95).setPosition((u.x+.5)*TILE,(u.y+.45)*TILE);
+      slash.lineStyle(3,0xffedbd,.9).lineBetween(-18,13,19,-12);
+      slash.lineStyle(1,0xd79761,.8).lineBetween(-14,15,22,-9);
+      this.tweens.add({targets:slash,alpha:0,scaleX:1.4,scaleY:1.4,duration:180,onComplete:()=>slash.destroy()});
+    }
+    const text=this.add.text((u.x+.5)*TILE,(u.y+.1)*TILE,hit.missed?'회피':`${hit.counter?'반격 ':''}−${hit.damage}`,{fontFamily:'serif',fontSize:'24px',fontStyle:'bold',color:hit.missed?'#dcd7bd':'#ffe0bd',stroke:'#33261b',strokeThickness:4}).setOrigin(.5).setDepth(100);
+    this.tweens.add({targets:text,y:text.y-35,alpha:0,duration:650,onComplete:()=>text.destroy()});
+    if(u.hp===0&&node?.active) this.tweens.add({targets:node,alpha:0,y:node.y+8,duration:230,onComplete:()=>this.removeUnit(u.id)});
+  }
+  private removeUnit(id:string) { this.activeWalks.delete(id);this.nodes.get(id)?.destroy(); this.nodes.delete(id); }
+  private pauseMotion(duration:number):Promise<void> {return new Promise(resolve=>this.time.delayedCall(duration,()=>resolve()));}
+  private motionBusy() {return this.activeWalks.size>0 || this.pendingHitSequences>0 || this.time.now<this.visualUntil;}
+  async waitForAnimations():Promise<void> {
+    while(this.ready&&this.motionBusy()) await this.pauseMotion(30);
+  }
+  motionSnapshot() {
+    return { ...this.counts, frames:this.motionFrames.map(frame=>({...frame})), busy:this.motionBusy(), active:[...this.nodes].map(([id,node])=>{const sprite=node.getByName('sprite') as Phaser.GameObjects.Sprite;return {id,texture:sprite.texture.key,frame:sprite.frame.name,playing:sprite.anims.isPlaying};}) };
   }
 }
 

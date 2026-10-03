@@ -1,21 +1,28 @@
 import './style.css';
+import './concept.css';
 import { createBattle, findUnit, unitAt, inBounds, terrainAt, TERRAIN_INFO, reachable, key, canAttack, previewAttack, moveUnit, undoMove, attackUnit, waitUnit, encourage, usePotion, endPlayerPhase, advancePhase, aiStep, parseSave, type BattleState, type Point, type Reachable, type Unit } from './core.ts';
 import { loadBattle, saveBattle, exportBattle } from './storage.ts';
 import type { BattleScene, MapMode } from './battle-scene.ts';
 import { icon } from './icons.ts';
 import type Phaser from 'phaser';
+import { portraitHtml, artIcon } from './art.ts';
+import { Preparation } from './preparation.ts';
 
 const caoPortrait = `${import.meta.env.BASE_URL}assets/cao-cao.png`;
 const root = document.querySelector<HTMLDivElement>('#app')!;
 const loaded = loadBattle();
 let state: BattleState = loaded.state ?? createBattle();
 let hasSave = !!loaded.state;
-let screen: 'title' | 'story' | 'battle' = 'title';
+let screen: 'title' | 'story' | 'preparation' | 'battle' = 'title';
 let renderer: Phaser.Game | null = null, scene: BattleScene | null = null;
 let selectedId = 'cao', mode: MapMode = 'move', storyIndex = 0;
 let savedOkay = true, aiRunning = false, generation = 0, resultShown = false;
 let modalKind = '', modalReturnFocus: HTMLElement | null = null;
 let pendingImport: BattleState | null = null;
+let preparation: Preparation | null = null;
+let pendingDeployment: Point | null = null;
+let storyChoice: 'protect' | 'advance' | null = null;
+let storyAuto = false, storyTimer = 0;
 type Decision = { kind: 'move'; point: Point; tile: Reachable } | { kind: 'attack'; targetId: string } | { kind: 'potion' | 'encourage' };
 let decision: Decision | null = null;
 let audio: AudioContext | null = null;
@@ -25,7 +32,7 @@ const esc = (s: string | number) => String(s).replace(/[&<>"']/g, c => ({ '&': '
 const wait = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
 const actor = () => findUnit(state, 'cao')!;
 const playerCanAct = () => screen === 'battle' && state.phase === 'player' && state.outcome === 'playing' && actor().hp > 0 && !actor().acted;
-const actionButton = (action: string, label: string, symbol: string, extra = '') => `<button data-action="${action}" ${extra}>${icon(symbol)}<span>${label}</span></button>`;
+const actionButton = (action: string, label: string, symbol: string, extra = '') => `<button data-action="${action}" ${extra}>${artIcon(symbol)}<span>${label}</span></button>`;
 const spriteStyle = (u: Unit) => `--sprite-x:${(u.sprite % 4) * 100 / 3}%;--sprite-y:${Math.floor(u.sprite / 4) * 100}%`;
 
 function sound(kind: 'click' | 'attack' | 'heal' = 'click') {
@@ -54,6 +61,7 @@ function toast(message: string) {
 }
 
 function showTitle() {
+  window.clearTimeout(storyTimer); storyAuto = false;
   generation++; renderer?.destroy(true); renderer = null; scene = null;
   screen = 'title'; modalKind = ''; document.querySelector('#modal-layer')?.remove();
   root.innerHTML = `<main class="title-screen">
@@ -80,29 +88,46 @@ const story = [
   { tag: '출진 전 군의', title: '첫 번째 결정', speaker: '조조', line: '백성이 머무는 마을이 있다. 우리의 군대는 무엇을 먼저 준비할 것인가?', note: '민가 보호는 회복약 3개, 선봉 강화는 회복약 2개와 첫 라운드 공격력 +10%입니다.' },
 ];
 function showStory() {
+  window.clearTimeout(storyTimer);
+  if (storyIndex === 2) storyAuto = false;
   screen = 'story'; const s = story[storyIndex];
   root.innerHTML = `<main class="story-screen">
-    <div class="story-shade"></div><div class="story-heading"><span class="eyebrow">${s.tag}</span><h1>${s.title}</h1></div>
-    <img class="story-portrait" src="${caoPortrait}" alt="조조" />
+    <div class="story-shade"></div><header class="story-heading ornate-panel"><span>◇</span><h1>영천의 군의</h1></header>
+    <div class="story-character story-left ${s.speaker==='조조'?'speaking':''}">${portraitHtml('cao','조조')}</div>
+    <div class="story-character story-right ${s.speaker==='군관'?'speaking':''}">${portraitHtml('officer','군관')}</div>
     <div class="story-dots">${story.map((_, i) => `<span class="${i <= storyIndex ? 'active' : ''}"></span>`).join('')}</div>
-    <section class="dialogue-box"><div class="dialogue-speaker">${s.speaker}</div><p>${s.line}</p><div class="dialogue-bottom"><span>${s.note}</span>${storyIndex < 2 ? `<button class="primary" data-action="story-next">계속 ${icon('chevron', 18)}</button>` : ''}</div></section>
-    ${storyIndex === 2 ? `<div class="story-choices"><button data-action="choice-protect">${icon('shield')}<strong>민가 보호를 준비한다</strong><span>회복약을 넉넉히 준비</span></button><button data-action="choice-advance">${icon('sword')}<strong>선봉을 강화한다</strong><span>첫 라운드 공격력 강화</span></button></div>` : ''}
-    <button class="story-back text-button" data-action="title">${icon('back', 18)} 처음 화면</button>
+    ${storyIndex === 2 ? `<div class="story-choices"><button class="${storyChoice==='protect'?'selected':''}" data-action="choice-protect" aria-pressed="${storyChoice==='protect'}">${artIcon('formation')}<strong>민가 보호를 준비한다</strong><span>회복약 3개</span></button><button class="${storyChoice==='advance'?'selected':''}" data-action="choice-advance" aria-pressed="${storyChoice==='advance'}">${artIcon('sword')}<strong>선봉을 강화한다</strong><span>회복약 2개 · 첫 턴 공격 +10%</span></button></div>` : ''}
+    <section class="dialogue-box"><div class="dialogue-speaker ornate-panel">${s.speaker}</div><div class="dialogue-paper ornate-panel">${storyIndex<2?`<button class="dialogue-text" data-action="story-next" aria-label="대화 다음으로">${s.line}</button>`:`<p class="dialogue-text">${s.line}</p>`}<div class="dialogue-bottom"><span>${s.note}</span>${storyIndex < 2 ? `<button class="dialogue-next" data-action="story-next" aria-label="계속">▼</button>` : `<button class="primary" data-action="choice-confirm" ${storyChoice?'':'disabled'}>출진 준비로 ${icon('chevron',18)}</button>`}</div></div><nav class="dialogue-tools" aria-label="대화 메뉴"><button class="ornate-button" data-action="story-log">${artIcon('scroll',30)}기록</button><button class="ornate-button ${storyAuto?'active':''}" data-action="story-auto" aria-pressed="${storyAuto}">${icon(storyAuto?'pause':'chevron',22)}자동</button></nav></section>
+    <button class="story-back ornate-button" data-action="title">${icon('back',18)}처음 화면</button>
   </main>`;
+  scheduleStory();
+}
+function scheduleStory() {
+  window.clearTimeout(storyTimer);
+  if (screen !== 'story' || !storyAuto || modalKind || document.hidden || storyIndex >= 2) return;
+  storyTimer = window.setTimeout(() => { if (screen==='story' && storyAuto && !modalKind) { storyIndex++; showStory(); } }, Math.max(4000, story[storyIndex].line.length*70));
+}
+function beginStory() { preparation = null; storyChoice = null; storyIndex = 0; storyAuto = false; showStory(); }
+function showPreparation() {
+  if (!preparation) return;
+  window.clearTimeout(storyTimer); storyAuto = false;
+  generation++; aiRunning = false; renderer?.destroy(true); renderer = null; scene = null;
+  screen = 'preparation'; root.innerHTML = preparation.render();
 }
 
 async function mountBattle() {
+  window.clearTimeout(storyTimer); storyAuto = false;
   generation++; aiRunning = false; screen = 'battle'; selectedId = 'cao'; mode = actor().moved ? 'inspect' : 'move'; decision = null; resultShown = false;
   renderer?.destroy(true); document.querySelector('#modal-layer')?.remove(); modalKind = '';
   root.innerHTML = `<main class="game-shell">
-    <header class="battle-header"><button class="battle-brand" data-action="pause" aria-label="전투 메뉴"><span class="seal">魏</span></button><div class="chapter-meta"><small>제1장 · 황건의 난</small><h1>영천의 불길</h1></div><div id="phase-status" aria-live="polite"></div><div class="header-actions"><button data-action="objective" class="objective-button">${icon('flag', 18)}<span>전투 목표</span></button><button data-action="sound" class="icon-button" aria-label="음향 켜기/끄기" title="음향 켜기/끄기">${icon('sound', 18)}</button><button data-action="pause" class="icon-button" aria-label="일시 정지" title="일시 정지">${icon('pause', 18)}</button></div></header>
+    <header class="battle-header"><div class="chapter-meta"><h1>영천 전투</h1></div><div id="phase-status" aria-live="polite"></div><div class="header-actions"><button data-action="objective" class="objective-button">${icon('flag', 18)}<span>전투 목표</span></button><button data-action="sound" class="icon-button" aria-label="음향 켜기/끄기" title="음향 켜기/끄기">${icon('sound', 18)}</button><button data-action="pause" class="icon-button ornate-button" aria-label="일시 정지" title="일시 정지">${icon('pause', 18)}</button></div></header>
     <div class="battle-body"><section id="map-area" aria-label="영천 전장">
       <div id="battlefield" role="img" aria-label="부대를 탭해 선택하고 칸을 탭해 행동을 미리 볼 수 있는 영천 전장"></div>
       <div class="map-note"><span class="map-dot"></span> 영천 외곽 <span class="weather">맑음</span></div>
       <div class="map-tools">${actionButton('focus', '조조', 'flag', 'title="조조에게 지도 이동"')}${actionButton('overview', '전체', 'map', 'title="전체 지도/확대 보기"')}<button data-action="zoom-in" aria-label="지도 확대">${icon('plus', 18)}</button><button data-action="zoom-out" aria-label="지도 축소">${icon('minus', 18)}</button><button data-action="grid" aria-label="격자 표시 전환" aria-pressed="${prefs.grid}">${icon('grid', 18)}</button></div>
       <div id="decision"></div><div id="map-loading"><span class="loading-spinner"></span> 전장을 펼치는 중</div>
     </section><aside id="unit-panel" aria-label="선택 부대 정보"></aside></div>
-    <footer class="command-bar"><div id="command-actor"></div><div class="command-center"><div id="command-hint"></div><nav class="command-actions" aria-label="조조의 명령">${actionButton('move', '이동', 'move', 'data-shortcut="1"')}${actionButton('attack', '공격', 'sword', 'data-shortcut="2"')}${actionButton('encourage', '책략', 'scroll', 'data-shortcut="3"')}${actionButton('potion', '도구', 'potion', 'data-shortcut="4"')}${actionButton('wait', '대기', 'wait', 'data-shortcut="5"')}</nav></div><button class="end-turn" data-action="end-turn">${icon('flag')}<span>턴 종료<small>SPACE</small></span></button></footer>
+    <footer class="command-bar"><div id="command-actor"></div><div class="command-center"><div id="command-hint"></div><nav class="command-actions" aria-label="조조의 명령">${actionButton('move', '이동', 'move', 'data-shortcut="1"')}${actionButton('attack', '공격', 'sword', 'data-shortcut="2"')}${actionButton('encourage', '책략', 'scroll', 'data-shortcut="3"')}${actionButton('potion', '도구', 'potion', 'data-shortcut="4"')}${actionButton('wait', '대기', 'wait', 'data-shortcut="5"')}</nav></div><button class="end-turn" data-action="end-turn">${artIcon('flag',48)}<span>턴 종료<small>SPACE</small></span></button></footer>
     <div class="portrait-tip">가로로 돌리면 전장이 더 넓게 보입니다.</div>
   </main>`;
   const epoch = generation;
@@ -122,8 +147,8 @@ function render() {
   const cao = actor();
   const selected = findUnit(state, selectedId); const u = selected?.hp ? selected : cao;
   selectedId = u.id;
-  const phaseText = state.outcome !== 'playing' ? '전투 종료' : state.phase === 'player' ? '아군의 차례' : state.phase === 'ally' ? '우군의 진격' : '적군의 차례';
-  document.querySelector('#phase-status')!.innerHTML = `<span class="phase-pill ${state.phase}"><span></span>${phaseText}</span><span class="round-count"><strong>${state.round}</strong> / 12 라운드</span>`;
+  const phaseText = state.outcome !== 'playing' ? '전투 종료' : state.phase === 'player' ? '아군' : state.phase === 'ally' ? '우군' : '적군';
+  document.querySelector('#phase-status')!.innerHTML = `<span class="phase-pill ornate-panel ${state.phase}">${phaseText} ${state.round}턴</span><span class="round-count">제한 12턴</span>`;
   document.querySelector('#unit-panel')!.innerHTML = panel(u);
   document.querySelector('#command-actor')!.innerHTML = `<div class="commander-face"><img src="${caoPortrait}" alt="" /></div><div><strong>조조 <span>Lv.3</span></strong><small class="${cao.acted ? 'acted' : ''}">${state.outcome !== 'playing' ? '전투 완료' : state.phase !== 'player' ? '전황 관찰' : cao.acted ? '행동 완료' : '행동 가능'}</small></div>`;
   const hint = decision?.kind === 'move' ? '경로를 확인하고 이동을 확정하세요.' : decision?.kind === 'attack' ? '피해와 반격을 확인하고 공격을 확정하세요.' : cao.acted ? '이번 행동을 마쳤습니다. 턴을 종료하세요.' : mode === 'move' ? '파란 칸을 탭하면 이동 경로를 확인합니다.' : mode === 'attack' ? '인접한 적을 선택하세요. 공격 전에는 확정이 필요합니다.' : '명령을 선택하거나 전장의 부대를 살펴보세요.';
@@ -137,21 +162,24 @@ function render() {
   document.querySelector<HTMLButtonElement>('[data-action="end-turn"]')!.disabled = state.phase !== 'player' || state.outcome !== 'playing';
   document.querySelector<HTMLButtonElement>('[data-action="sound"]')!.classList.toggle('muted', !prefs.sound);
   document.querySelector('#decision')!.innerHTML = decisionHtml();
-  scene?.present({ state, selectedId, mode: playerCanAct() ? mode : 'inspect', reachable: mode === 'move' && !cao.moved ? reachable(state, cao) : [], preview: decision?.kind === 'move' ? decision.tile.path : [], target: decision?.kind === 'move' ? decision.point : decision?.kind === 'attack' ? findUnit(state, decision.targetId)! : null, grid: prefs.grid });
-  if (state.outcome !== 'playing' && !resultShown) { resultShown = true; openModal('result'); }
+  scene?.present({ state, selectedId, mode: playerCanAct() ? mode : 'inspect', reachable: mode === 'move' && !cao.moved ? reachable(state, cao) : [], preview: decision?.kind === 'move' ? decision.tile.path : [], target: decision?.kind === 'move' ? decision.point : decision?.kind === 'attack' ? findUnit(state, decision.targetId)! : null, grid: prefs.grid, fast:prefs.fast });
+  if (state.outcome !== 'playing' && !resultShown) {
+    resultShown=true; const epoch=generation;
+    void (async()=>{await wait(30);await scene?.waitForAnimations();if(epoch===generation&&screen==='battle')openModal('result');})();
+  }
 }
 
 function panel(u: Unit) {
   const terrain = TERRAIN_INFO[terrainAt(u)];
   const color = u.team === 'enemy' ? 'enemy' : u.team === 'ally' ? 'ally' : 'player';
-  const portrait = u.id === 'cao' ? `<img class="panel-portrait" src="${caoPortrait}" alt="조조 초상" />` : `<div class="panel-sprite" style="${spriteStyle(u)}"></div>`;
+  const portrait = u.team !== 'enemy' ? portraitHtml(u.id,`${u.name} 초상`,'panel-portrait') : `<div class="panel-sprite" style="${spriteStyle(u)}"></div>`;
   const bosses = state.units.filter(e => e.boss);
   return `<div class="portrait-window ${color}"><div class="portrait-bg"></div>${portrait}<span class="faction-tag">${u.team === 'enemy' ? '黃巾' : '魏'}</span><span class="portrait-caption">${u.role}</span></div>
     <div class="unit-details"><div class="unit-name"><h2>${u.name}</h2><span>Lv.${u.level}</span></div><div class="unit-subtitle"><span class="team-dot ${color}"></span>${u.team === 'enemy' ? '황건군' : u.team === 'ally' ? '우군 · 자동 지휘' : '아군 · 직접 지휘'}${u.buff ? '<span class="buff-chip">격려</span>' : ''}${u.confused ? '<span class="buff-chip">혼란</span>' : ''}</div>
     <div class="meter-row"><span>HP</span><div class="meter"><i style="width:${u.hp / u.maxHp * 100}%"></i></div><small>${u.hp}<em>/${u.maxHp}</em></small></div>
     <div class="meter-row mp"><span>MP</span><div class="meter"><i style="width:${u.maxMp ? u.mp / u.maxMp * 100 : 0}%"></i></div><small>${u.mp}<em>/${u.maxMp}</em></small></div>
     <div class="unit-stats"><span>${icon('sword', 14)} 공격 <b>${Math.round(u.attack * (u.buff ? 1.1 : 1))}</b></span><span>${icon('shield', 14)} 방어 <b>${u.defense}</b></span><span>${icon('move', 14)} 이동 <b>${u.movement}</b></span></div>
-    <div class="terrain-card"><div><span class="terrain-icon">${terrainAt(u) === 'forest' ? '林' : terrainAt(u) === 'camp' ? '營' : terrainAt(u) === 'village' ? '村' : '野'}</span><strong>${terrain.name}</strong><span>방어 +${Math.round(terrain.defense * 100)}%</span></div><p>${terrain.description}</p></div>
+    <div class="terrain-card ornate-panel"><div class="terrain-summary"><span class="terrain-preview" style="background-position:${u.x/17*100}% ${u.y/11*100}%"></span><div><strong>${terrain.name}</strong><span>${icon('shield',15)} 방어 +${Math.round(terrain.defense*100)}%</span><span>${icon('move',15)} 이동 비용 ${terrain.cost}</span></div></div><p>${terrain.description}</p></div>
     <div class="mission-progress"><div class="section-caption">승리 조건 <span>${bosses.filter(b => !b.hp).length} / 2</span></div>${bosses.map(b => `<div class="boss-progress"><span class="${b.hp ? '' : 'defeated'}">${b.hp ? '◇' : '✓'} ${b.name}</span><small>${b.hp ? '퇴각 목표' : '퇴각 완료'}</small></div>`).join('')}</div>
     <div class="field-journal"><div class="section-caption">전장 기록</div><p>${esc(state.logs.at(-1) ?? '')}</p><button class="text-button" data-action="log">기록 펼치기 ${icon('chevron', 12)}</button></div></div>`;
 }
@@ -192,7 +220,7 @@ function confirmDecision() {
   if (!decision || !playerCanAct()) return;
   const d = decision; let ok = false;
   if (d.kind === 'move') { ok = moveUnit(state, 'cao', d.point); if (ok) mode = 'inspect'; }
-  if (d.kind === 'attack') { const result = attackUnit(state, 'cao', d.targetId); ok = !!result; if (result) { sound('attack'); scene?.hits(result.hits); } }
+  if (d.kind === 'attack') { const result = attackUnit(state, 'cao', d.targetId); ok = !!result; if (result) { sound('attack'); scene?.hits(result.hits,'cao'); } }
   if (d.kind === 'potion') { ok = usePotion(state); if (ok) sound('heal'); }
   if (d.kind === 'encourage') { ok = encourage(state); if (ok) sound('heal'); }
   decision = null;
@@ -205,11 +233,14 @@ async function runAi() {
   try {
     while (screen === 'battle' && epoch === generation && ['ally', 'enemy'].includes(state.phase) && state.outcome === 'playing') {
       if (modalKind || document.hidden) { await wait(120); continue; }
+      await scene?.waitForAnimations();
+      if(epoch!==generation || screen!=='battle') break;
+      if(modalKind || document.hidden) continue;
       const hadFire = state.fireTriggered;
       const step = aiStep(state);
       if (!step) advancePhase(state);
       remember(); render();
-      if (step) { const u = findUnit(state, step.unitId); if (u && innerHeight < 500) scene?.centerOn(u); if (step.result) { scene?.hits(step.result.hits); sound('attack'); } }
+      if (step) { const u = findUnit(state, step.unitId); if (u && innerHeight < 500) scene?.centerOn(u); if (step.result) { scene?.hits(step.result.hits,step.unitId); sound('attack'); } }
       if (!hadFire && state.fireTriggered) toast('우군의 화공! 황건 일반 부대가 혼란에 빠졌습니다.');
       await wait(prefs.fast ? 140 : 580);
     }
@@ -223,8 +254,18 @@ function objectiveContent() {
 }
 
 function openModal(kind: string) {
+  window.clearTimeout(storyTimer);
   modalKind = kind;
   let body = '', footer = '';
+  if (kind === 'story-log') body = `<span class="modal-eyebrow">영천의 군의</span><h2>대화 기록</h2><ol class="journal-list">${story.slice(0,storyIndex+1).map(s=>`<li><strong>${s.speaker}</strong><p>${s.line}</p></li>`).join('')}</ol>`;
+  if (kind === 'prep-objective') body = objectiveContent();
+  if (kind === 'prep-equipment' && preparation) body = preparation.equipmentContent();
+  if (kind === 'prep-shop' && preparation) body = preparation.shopContent();
+  if (kind === 'prep-deployment' && preparation) {
+    pendingDeployment ??= {x:findUnit(preparation.battle,'cao')!.x,y:findUnit(preparation.battle,'cao')!.y};
+    body = preparation.deploymentContent(pendingDeployment);
+    footer = '<button class="secondary" data-action="close-modal">취소</button><button class="primary" data-action="prep-deploy-confirm">배치 확정</button>';
+  }
   if (kind === 'objective') body = objectiveContent();
   if (kind === 'log') body = `<span class="modal-eyebrow">영천 전투</span><h2>전장 기록</h2><ol class="journal-list">${state.logs.map(l => `<li>${esc(l)}</li>`).join('')}</ol>`;
   if (kind === 'pause') {
@@ -252,7 +293,7 @@ function openModal(kind: string) {
   dialog?.focus({ preventScroll: true });
   if (dialog) dialog.scrollTop = 0;
 }
-function closeModal() { modalKind = ''; document.querySelector('#modal-layer')?.remove(); if (modalReturnFocus?.isConnected) modalReturnFocus.focus(); }
+function closeModal() { modalKind = ''; pendingDeployment = null; document.querySelector('#modal-layer')?.remove(); if (modalReturnFocus?.isConnected) modalReturnFocus.focus(); scheduleStory(); }
 function startPhase() { closeModal(); decision = null; if (endPlayerPhase(state)) { remember(); render(); void runAi(); } }
 
 function chooseImport() {
@@ -269,13 +310,23 @@ document.addEventListener('click', event => {
   const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-action]');
   if (!button || button.disabled) return;
   const a = button.dataset.action;
-  if (a === 'new') { if (hasSave) openModal('new'); else { storyIndex = 0; showStory(); } }
-  if (a === 'new-confirm') { closeModal(); storyIndex = 0; showStory(); }
+  if (a === 'new') { if (hasSave) openModal('new'); else beginStory(); }
+  if (a === 'new-confirm') { closeModal(); beginStory(); }
   if (a === 'continue') mountBattle();
   if (a === 'title') { if (screen === 'battle') remember(); closeModal(); showTitle(); }
-  if (a === 'story-next') { storyIndex++; sound(); showStory(); }
-  if (a === 'choice-protect' || a === 'choice-advance') { state = createBattle(a === 'choice-protect' ? 'protect' : 'advance'); remember(); sound(); mountBattle(); }
-  if (a === 'restart') { closeModal(); state = createBattle(state.choice); remember(); mountBattle(); }
+  if (a === 'story-next' && screen==='story' && storyIndex<2) { storyIndex++; sound(); showStory(); }
+  if (a === 'story-auto' && screen==='story') { storyAuto = storyIndex<2 && !storyAuto; showStory(); }
+  if (a === 'story-log' && screen==='story') openModal(a);
+  if ((a === 'choice-protect' || a === 'choice-advance') && screen==='story') { storyChoice = a === 'choice-protect' ? 'protect' : 'advance'; sound(); showStory(); }
+  if (a === 'choice-confirm' && screen==='story' && storyChoice) { if(!preparation || preparation.battle.choice!==storyChoice) preparation = new Preparation(storyChoice); sound(); showPreparation(); }
+  if (a === 'prep-back' && screen==='preparation') { storyIndex=2; showStory(); }
+  if (a === 'prep-unit' && preparation && screen==='preparation' && ['cao','liu','guan','zhang'].includes(button.dataset.unitId??'')) { preparation.selectedId=button.dataset.unitId!; showPreparation(); sound(); }
+  if ((a === 'prep-equipment' || a === 'prep-shop' || a === 'prep-deployment' || a === 'prep-objective') && screen==='preparation') openModal(a);
+  if ((a === 'prep-buy' || a === 'prep-sell') && preparation && screen==='preparation') { if (a==='prep-buy'?preparation.buyPotion():preparation.sellPotion()) { showPreparation(); openModal('prep-shop'); sound(); } }
+  if (a === 'prep-position' && screen==='preparation' && modalKind==='prep-deployment') { pendingDeployment={x:Number(button.dataset.x),y:Number(button.dataset.y)}; openModal('prep-deployment'); }
+  if (a === 'prep-deploy-confirm' && preparation && pendingDeployment && screen==='preparation') { if (preparation.deploy(pendingDeployment)) { closeModal(); showPreparation(); sound(); } }
+  if (a === 'depart' && preparation && screen==='preparation') { state=structuredClone(preparation.battle); remember(); sound(); mountBattle(); }
+  if (a === 'restart') { closeModal(); preparation = new Preparation(state.choice); showPreparation(); }
   if (a === 'move' || a === 'attack') setMode(a);
   if (a === 'confirm') confirmDecision();
   if (a === 'cancel') { decision = null; sound(); render(); }
@@ -313,10 +364,10 @@ document.addEventListener('keydown', e => {
   const mapping: Record<string, string> = { '1': 'move', '2': 'attack', '3': 'encourage', '4': 'potion', '5': 'wait', ' ': 'end-turn' };
   if (mapping[e.key]) { e.preventDefault(); document.querySelector<HTMLButtonElement>(`[data-action="${mapping[e.key]}"]`)?.click(); }
 });
-document.addEventListener('visibilitychange', () => { if (screen === 'battle' && document.hidden) remember(); });
+document.addEventListener('visibilitychange', () => { if (screen === 'battle' && document.hidden) remember(); if(screen==='story') { if(document.hidden) window.clearTimeout(storyTimer); else scheduleStory(); } });
 window.addEventListener('pagehide', () => { if (screen === 'battle') remember(); });
 
 if (import.meta.env.DEV) {
-  (window as unknown as Record<string, unknown>).__WEI_DEBUG__ = { state: () => structuredClone(state), tile: (point: Point) => scene?.tileToScreen(point), ready: () => !!scene && !document.querySelector('#map-loading') };
+  (window as unknown as Record<string, unknown>).__WEI_DEBUG__ = { state: () => structuredClone(state), tile: (point: Point) => scene?.tileToScreen(point), ready: () => !!scene && !document.querySelector('#map-loading'), motion:()=>scene?.motionSnapshot() };
 }
 showTitle();

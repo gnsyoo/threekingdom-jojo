@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="300" viewBox="0 0 900 300" preserveAspectRatio="none">
+ <defs><linearGradient id="paper" x2="0.6" y2="1"><stop stop-color="#f0e7cc"/><stop offset=".6" stop-color="#e4d5b4"/><stop offset="1" stop-color="#d0bd95"/></linearGradient><pattern id="grain" width="9" height="9" patternUnits="userSpaceOnUse"><circle cx="2" cy="3" r=".6" fill="#6d5635" opacity=".1"/><path d="m6 7 2-1" stroke="#fff8db" opacity=".4"/></pattern></defs>
+ <path fill="url(#paper)" d="M0 0h900v300H0z"/><path fill="url(#grain)" d="M0 0h900v300H0z"/>
+ <g fill="#5b675b" opacity=".08"><path d="m340 300 95-68 40 16 52-47 27 23 54-79 63 70 30-39 94 79 39-23 66 48v20Z"/><path d="m480 300 79-54 22 11 77-69 33 38 39-25 67 48 41-13 62 43v21Z"/><path d="m710 300 15-58 10-8 11 31 18-33 13 23 19-45 18 51 8-26 19 65Z"/></g>
+ <g fill="none" stroke="#756346" opacity=".12"><path d="M0 7h900M0 293h900"/><path d="M8 0v300M892 0v300"/></g>
+</svg>
