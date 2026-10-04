@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { getScenario, type Scenario, type ScenarioId } from './scenarios.ts';
-import { key, inBounds, reachable as movementRange, findUnit, type BattleState, type Point, type Reachable, type Hit, type Unit } from './core.ts';
+import { key, inBounds, clearShot, reachable as movementRange, findUnit, type BattleState, type Point, type Reachable, type Hit, type Unit } from './core.ts';
 
 export const TILE = 64;
 export type MapMode = 'inspect' | 'move' | 'attack';
@@ -150,7 +150,7 @@ export class BattleScene extends Phaser.Scene {
         const positions=(boss.id==='gongsun'&&state.round<3)||boss.id==='zhuge'||this.scenario.stationary?.includes(boss.id)?[boss]:movementRange(state,boss);
         for(const position of positions)for(let dy=-boss.range[1];dy<=boss.range[1];dy++)for(let dx=-boss.range[1];dx<=boss.range[1];dx++){
           const point={x:position.x+dx,y:position.y+dy},distance=Math.abs(dx)+Math.abs(dy);
-          if(inBounds(point,state.scenarioId)&&distance>=boss.range[0]&&distance<=boss.range[1])danger.add(key(point));
+          if(inBounds(point,state.scenarioId)&&distance>=boss.range[0]&&distance<=boss.range[1]&&(!this.scenario.siege||clearShot(position,point,state.scenarioId)))danger.add(key(point));
         }
       }
       for(const point of danger){const [x,y]=point.split(',').map(Number);g.fillStyle(0xc45550,.2).fillRect(x*TILE+1,y*TILE+1,TILE-2,TILE-2);g.lineStyle(1,0xe1a176,.45).strokeRect(x*TILE+1,y*TILE+1,TILE-2,TILE-2);}

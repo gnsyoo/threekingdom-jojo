@@ -1,6 +1,7 @@
 import {test,expect,type Page} from '@playwright/test';
 import {reachable,distance,canAttack,type BattleState,type Point} from '../../src/core.ts';
 import {SCENARIOS,getScenario,nextScenario,type ScenarioId} from '../../src/scenarios.ts';
+import {combatMoves} from '../helpers/play-mission.ts';
 
 const state=(page:Page):Promise<BattleState>=>page.evaluate(()=>(window as any).__WEI_DEBUG__.state());
 async function tile(page:Page,point:Point){const p=await page.evaluate(p=>(window as any).__WEI_DEBUG__.tile(p),point);await page.mouse.click(p.x,p.y);}
@@ -68,7 +69,7 @@ for(const id of ['wuzhang','liaodong'] as ScenarioId[])test(`${id} legal UI acti
     else {
       const enemies=s.units.filter(u=>u.team==='enemy'&&u.hp>0);
       if(!enemies.some(u=>canAttack(s,sima,u))){
-        const options=reachable(s,sima).sort((a,b)=>Math.min(...enemies.map(e=>distance(a,e)))-Math.min(...enemies.map(e=>distance(b,e)))||a.cost-b.cost);
+        const options=combatMoves(s);
         if(options[0]&&distance(sima,options[0])){await page.locator('[data-action="move"]').click();await tile(page,options[0]);await page.locator('[data-action="confirm"]').click();}
       }
       s=await state(page);const target=s.units.filter(u=>canAttack(s,s.units[0],u)).sort((a,b)=>a.hp-b.hp)[0];

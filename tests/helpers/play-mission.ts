@@ -1,5 +1,18 @@
-import {createBattle,findUnit,reachable,distance,terrainAt,TERRAIN_INFO,canAttack,attackUnit,moveUnit,waitUnit,usePotion,endPlayerPhase,advancePhase,aiStep,setTactic,parseSave,type BattleState,type Point} from '../../src/core.ts';
+import {createBattle,findUnit,reachable,distance,terrainAt,TERRAIN_INFO,canAttack,clearShot,attackUnit,moveUnit,waitUnit,usePotion,endPlayerPhase,advancePhase,aiStep,setTactic,parseSave,type BattleState,type Point} from '../../src/core.ts';
 import {getScenario,type ScenarioId,type Choice} from '../../src/scenarios.ts';
+/** Test pilot routes to a firing position through gates rather than directly toward masonry. */
+export function combatMoves(s:BattleState) {
+ const u=findUnit(s,'sima')!,scenario=getScenario(s.scenarioId),enemies=s.units.filter(e=>e.team==='enemy'&&e.hp>0),options=reachable(s,u);
+ if(!scenario.siege)return options.sort((a,b)=>Math.min(...enemies.map(e=>distance(a,e)))-Math.min(...enemies.map(e=>distance(b,e)))||a.cost-b.cost);
+ const best=new Map<string,number>(),queue:{x:number;y:number;cost:number}[]=[];const key=(p:Point)=>`${p.x},${p.y}`;
+ for(let y=0;y<scenario.rows;y++)for(let x=0;x<scenario.cols;x++){
+  const p={x,y};if(Number.isFinite(TERRAIN_INFO[terrainAt(p,s.scenarioId)].cost)&&enemies.some(e=>distance(p,e)>=u.range[0]&&distance(p,e)<=u.range[1]&&clearShot(p,e,s.scenarioId))){best.set(key(p),0);queue.push({...p,cost:0});}
+ }
+ while(queue.length){queue.sort((a,b)=>a.cost-b.cost);const p=queue.shift()!;if(best.get(key(p))!==p.cost)continue;
+  for(const d of [{x:1,y:0},{x:-1,y:0},{x:0,y:1},{x:0,y:-1}]){const q={x:p.x+d.x,y:p.y+d.y},cost=p.cost+TERRAIN_INFO[terrainAt(p,s.scenarioId)].cost;if(cost<(best.get(key(q))??Infinity)){best.set(key(q),cost);queue.push({...q,cost});}}
+ }
+ return options.sort((a,b)=>(best.get(key(a))??1e6)-(best.get(key(b))??1e6)||a.cost-b.cost);
+}
 /** Tactical test pilot. It only uses public rule actions; no HP, position or outcome injection. */
 export function chooseAction(s:BattleState):{move?:Point;attack?:string;heal?:boolean} {
  const u=findUnit(s,'sima')!,scenario=getScenario(s.scenarioId),enemies=s.units.filter(u=>u.team==='enemy'&&u.hp>0);
@@ -15,7 +28,7 @@ export function chooseAction(s:BattleState):{move?:Point;attack?:string;heal?:bo
  }
  const options=reachable(s,u);let move:Point|undefined;
  if(target){options.sort((a,b)=>(distances.get(`${a.x},${a.y}`)??1e6)-(distances.get(`${b.x},${b.y}`)??1e6)||a.cost-b.cost);if(options[0]&&distance(options[0],u))move=options[0];}
- else if(scenario.goal==='defeat'&&!enemies.some(e=>canAttack(s,u,e))){options.sort((a,b)=>Math.min(...enemies.map(e=>distance(a,e)))-Math.min(...enemies.map(e=>distance(b,e)))||a.cost-b.cost);if(options[0]&&distance(options[0],u))move=options[0];}
+ else if(scenario.goal==='defeat'&&!enemies.some(e=>canAttack(s,u,e))){const approach=combatMoves(s);if(approach[0]&&distance(approach[0],u))move=approach[0];}
  const at=move?{...u,...move}:u;
  if(target&&distance(at,target)===0)return {move};
  const enemy=enemies.filter(e=>distance(at,e)>=u.range[0]&&distance(at,e)<=u.range[1]).sort((a,b)=>a.hp-b.hp)[0];

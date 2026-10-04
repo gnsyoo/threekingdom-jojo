@@ -4,6 +4,7 @@ import { createBattle, findUnit, reachable, terrainAt, moveUnit, undoMove, canAt
 import { Preparation } from '../src/preparation.ts';
 import { SCENARIOS, type ScenarioId } from '../src/scenarios.ts';
 import { loadBattle, saveBattle, loadCompleted } from '../src/storage.ts';
+import {combatMoves} from './helpers/play-mission.ts';
 
 const sima = (s: BattleState) => findUnit(s, 'sima')!;
 
@@ -46,18 +47,18 @@ test('a prepared start and supplies survive saving, movement and undo',()=>{
 });
 
 test('weighted movement excludes deep water and occupied destinations, but permits the bridge', () => {
-  const s = createBattle(); sima(s).x = 14; sima(s).y = 5;
+  const s = createBattle('protect',228,'shangyong-01'); sima(s).x = 9; sima(s).y = 6;
   const choices = reachable(s, sima(s));
-  assert.equal(terrainAt({ x: 15, y: 5 }), 'water');
-  assert.ok(!choices.some(p => p.x === 15 && p.y === 5));
-  assert.ok(choices.some(p => p.x === 15 && p.y === 6));
-  assert.ok(!choices.some(p => p.x === 12 && p.y === 5));
+  assert.equal(terrainAt({ x: 10, y: 6 },s.scenarioId), 'water');
+  assert.ok(!choices.some(p => p.x === 10 && p.y === 6));
+  assert.ok(choices.some(p => p.x === 10 && p.y === 7));
+  assert.ok(!choices.some(p => p.x === 11 && p.y === 7));
   assert.ok(choices.every(p => p.cost <= sima(s).movement));
 });
 
 test('forest movement uses terrain cost instead of geometric distance', () => {
-  const s = createBattle();
-  const p = reachable(s, sima(s)).find(p => p.x === 3 && p.y === 9)!;
+  const s = createBattle('protect',228,'shangyong-01'); Object.assign(sima(s),{x:3,y:7});
+  const p = reachable(s, sima(s)).find(p => p.x === 1 && p.y === 6)!;
   assert.equal(p.cost, 4); assert.equal(p.path.length, 3);
 });
 
@@ -212,8 +213,8 @@ test('each mission has its own bounds, valid roster, traversable gate and deploy
     assert.equal(inBounds({x:scenario.cols,y:scenario.rows-1},scenario.id),false);
     for(const position of scenario.deployment){const p=new Preparation('protect',scenario.id);assert.equal(p.deploy(position),true);assert.ok(parseSave(JSON.stringify(p.battle)));}
   }
-  assert.equal(terrainAt({x:11,y:0},'wuzhang'),'road');assert.equal(terrainAt({x:8,y:0},'wuzhang'),'wall');
-  assert.equal(terrainAt({x:23,y:7},'liaodong'),'road');assert.equal(terrainAt({x:23,y:3},'liaodong'),'wall');
+  assert.equal(terrainAt({x:10,y:7},'wuzhang'),'gate');assert.equal(terrainAt({x:10,y:3},'wuzhang'),'wall');
+  assert.equal(terrainAt({x:13,y:7},'liaodong'),'gate');assert.equal(terrainAt({x:23,y:3},'liaodong'),'wall');
 });
 
 test('healing supports adjacent injured allies and refuses enemies, full HP or distant targets',()=>{
@@ -276,7 +277,7 @@ for(const scenarioId of ['wuzhang','liaodong'] as ScenarioId[])test(`${scenarioI
     else {
       const enemies=s.units.filter(u=>u.team==='enemy'&&u.hp>0);
       if(!enemies.some(e=>canAttack(s,player,e))){
-        const options=reachable(s,player).sort((a,b)=>Math.min(...enemies.map(e=>distance(a,e)))-Math.min(...enemies.map(e=>distance(b,e)))||a.cost-b.cost);
+        const options=combatMoves(s);
         if(options[0]&&distance(player,options[0]))moveUnit(s,'sima',options[0]);
       }
       const target=enemies.filter(e=>canAttack(s,player,e)).sort((a,b)=>a.hp-b.hp)[0];

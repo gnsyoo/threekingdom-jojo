@@ -2,7 +2,7 @@
 
 삼국연의의 사마의 관련 전개를 중심으로 만든 모바일 웹 전술 RPG다. **220년 서막 → 228~249년 아홉 원정의 50개 전투 → 251년 종막**을 플레이한다. 승리뿐 아니라 공성계에 속은 회군, 화공에서의 탈출, 목상 앞의 퇴각과 고평릉 이후의 처형도 원전대로 이야기한다. 종막의 마지막 생각 두 문장만 짧게 각색했다.
 
-[GitHub Pages에서 게임 실행](https://gnsyoo.github.io/threekingdom-jojo/) · [전체 대사·실제 화면](docs/prototype/SIMA_CAMPAIGN.md) · [50개 전투 확장·QA](docs/prototype/CAMPAIGN-50-QA.md)
+[GitHub Pages에서 게임 실행](https://gnsyoo.github.io/threekingdom-jojo/) · [전체 대사·실제 화면](docs/prototype/SIMA_CAMPAIGN.md) · [공성전 15개·최신 QA](docs/prototype/SIEGE-QA.md)
 
 ## 원정
 
@@ -20,9 +20,12 @@
 
 양평관은 사마의가 보낸 **사마사를 직접 조작**한다. 다른 임무의 직접 지휘 장수는 사마의다. 전투 전 네~여섯 대화와 두 전략, 출진 준비, 실제 전술 임무, 원작 후일담 두 장면이 연결된다. 원정 기록에서 각 임무를 다시 플레이할 수 있다.
 
+전체 50개 중 **공성전 15개(30%)**, 야전 35개다. 석조 성곽·목책 성채를 공격·방어·포위하며, 원정 기록에서 공성전만 골라 볼 수 있다.
+
 ## 전술과 성장
 
 - 이동 미리보기·확정·되돌리기, 피해·명중·반격 예측, 자신이나 인접 우군 회복.
+- 공성전에서는 성벽이 이동·사격을 막고 부대가 성문을 찾아 이동한다. 성문 방어 +15%, 성벽 안쪽 통로 방어 +25%. 전투 목표에서 성문 위치를 볼 수 있다.
 - 우군 방침: 진격·지휘관 호위·진영 유지. 적군 위협 범위와 거점 위치 보기.
 - 대기: 다음 자기 차례까지 받는 피해 25% 감소. 격려: MP 6, 자신과 3칸 이내 우군 공격 +10%, 2라운드.
 - 제압·거점 확보·방어·회군의 네 목표. 상방곡의 화공·비, 양평관의 연노 등 임무별 사건.
@@ -36,6 +39,8 @@
 세로에서는 준비 본문을 스크롤하고 하단 메뉴를 고정한다. 전투 정보는 지도 아래에, 가로에서는 오른쪽에 둔다. 초상 비율·장비 아이콘·긴 금액·작은 화면의 버튼과 좌우 스와이프를 검사한다. 전장 이름은 브라우저 글자로 표시하며 인물·무기는 한 칸 안에 맞춘다. 진한 발밑 그림자는 없다.
 
 서막·군의·전략 선택·준비·종막의 위치를 저장하여 **이야기 이어보기**로 돌아온다. 출진을 확정하기 전까지 기존 전투 저장은 보관한다. 전투는 AI 행동 중 복귀·정상 백업·JSON 내보내기/가져오기를 지원한다.
+
+공성전 이전의 저장은 새 성벽 위 부대를 가까운 빈 통행 칸으로 옮기고 HP·차례·사건·진행을 유지한다.
 
 기존 사마의전 `simayi-chronicle.battle.v2`·백업·완료 목록은 유지하고 새 필드를 검증해 보충한다. 새 이야기/준비 저장은 `journey.v1`, 평가 기록은 `records.v1`이다. 조조편 `wei-tactics.*.v1`은 지우지 않는다. 저장은 접속한 사이트의 주소별로 분리된다.
 
@@ -53,11 +58,11 @@ npm run build:pages
 
 개발 서버는 5173을 모든 인터페이스에 바인딩한다. 비밀 키·외부 API·DB는 필요하지 않다. Pages 빌드는 `/threekingdom-jojo/`를 사용한다. `main` 푸시 시 Actions가 규칙 검사·타입 검사·빌드를 수행하고 `dist/`를 배포한다. 저장소 Pages 소스는 GitHub Actions다. `npm run preview -- --port 4173 --strictPort`로 빌드 결과를 확인할 수 있다.
 
-50개 전투는 전투별로 새로 제작한 `*-field.webp` 일러스트를 사용한다. `node scripts/build-campaign-maps.ts`는 실제 지형 배열의 아트 제작용 SVG 배치도를 `qa-artifacts/map-layouts/`에 만들며, 배포 아트를 덮어쓰지 않는다. [전장 아트 제작·검수 기록](docs/prototype/BATTLE-ART.md)에 원본·용량·검수 내용을 기록한다. 폰트 추가 문자는 `scripts/build-font-subsets.py --source-dir <sans.ttf와 serif.ttf가 있는 폴더>`로 반영한다(Python/fonttools 필요). 일반 빌드는 커밋된 리소스를 사용한다.
+50개 전투는 전투별 일러스트를 사용한다. 공성전 15개는 새로 제작한 `*-siege.webp`, 야전 35개는 `*-field.webp`다. `node scripts/build-campaign-maps.ts`는 실제 지형 배열의 아트 제작용 SVG 배치도를 `qa-artifacts/map-layouts/`에 만들며, 배포 아트를 덮어쓰지 않는다. [전장 아트 제작·검수 기록](docs/prototype/BATTLE-ART.md)에 원본·용량·검수 내용을 기록한다. 폰트 추가 문자는 `scripts/build-font-subsets.py --source-dir <sans.ttf와 serif.ttf가 있는 폴더>`로 반영한다(Python/fonttools 필요). 일반 빌드는 커밋된 리소스를 사용한다.
 
 ## 구조
 
-- `src/scenarios.ts`, `extra-scenarios.ts`, `campaign-stages.ts`, `scenario-kit.ts`: 50개 전투·대사·지도·명단.
+- `src/scenarios.ts`, `extra-scenarios.ts`, `campaign-stages.ts`, `scenario-kit.ts`, `siege-scenarios.ts`: 50개 전투·대사·지도·명단.
 - `src/chronicle.ts`, `chronicle.css`: 서막·종막·평가별 회고와 대응 화면.
 - `src/core.ts`: 이동·전투·거점·방어·회군·우군 방침·사건·저장 검증.
 - `src/storage.ts`: 전투·여정·완료 목록·최고 평가 기록.

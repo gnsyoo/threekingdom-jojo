@@ -3,7 +3,7 @@ export const COLS = 18;
 export const ROWS = 12;
 export const TURN_LIMIT = 12;
 export type Team = 'player' | 'ally' | 'enemy';
-export type Terrain = 'grass' | 'road' | 'forest' | 'water' | 'bridge' | 'village' | 'camp' | 'wall';
+export type Terrain = 'grass' | 'road' | 'forest' | 'water' | 'bridge' | 'village' | 'camp' | 'wall' | 'gate' | 'rampart';
 export type Phase = Team;
 export type Outcome = 'playing' | 'won' | 'lost';
 export interface Point { x: number; y: number }
@@ -20,6 +20,7 @@ export interface BattleState {
   pendingMove: { unitId: string; from: Point; to: Point } | null;
   surpriseTriggered: boolean; villageVisited: boolean; attacksMade: number;
   logs: string[]; startedAt: number; savedAt: number;
+  mapRevision?:number;
 }
 export interface Reachable extends Point { cost: number; path: Point[] }
 export interface Hit { targetId: string; damage: number; missed: boolean; counter: boolean }
@@ -34,6 +35,8 @@ export const TERRAIN_INFO: Record<Terrain, { name: string; cost: number; defense
   village: { name: '마을', cost: 1, defense: .1, description: '아군 차례 시작에 최대 체력의 10%를 회복한다.' },
   camp: { name: '진영', cost: 1, defense: .1, description: '적 지휘관이 지키는 진영. 방어에 유리하다.' },
   wall: { name: '건물', cost: Infinity, defense: 0, description: '통행할 수 없다. 마당과 길로 우회하라.' },
+  gate: { name: '성문', cost: 1, defense: .15, description: '성벽을 통과하는 좁은 길. 우군과 전열을 붙여 진입하거나 수비한다.' },
+  rampart: { name: '성벽 안쪽 통로', cost: 2, defense: .25, description: '성벽 뒤의 수비 통로. 이동은 느리지만 방어에 유리하다.' },
 };
 
 export const inBounds = (p: Point, scenarioId: ScenarioId = 'shangyong') => Number.isInteger(p.x) && Number.isInteger(p.y) && p.x >= 0 && p.y >= 0 && p.x < getScenario(scenarioId).cols && p.y < getScenario(scenarioId).rows;
@@ -47,7 +50,7 @@ export function terrainAt(p: Point, scenarioId: ScenarioId = 'shangyong'): Terra
 export function createBattle(choice: 'protect' | 'advance' = 'protect', seed = 228, scenarioId: ScenarioId = 'shangyong'): BattleState {
   const scenario=getScenario(scenarioId);
   return {
-    version:2,scenarioId,events:[],round:1,phase:'player',outcome:'playing',seed,choice,
+    version:2,scenarioId,mapRevision:scenario.mapRevision??1,events:[],round:1,phase:'player',outcome:'playing',seed,choice,
     objectives:[],tactic:'advance',loadout:'standard',potions:choice==='protect'?3:2,pendingMove:null,surpriseTriggered:false,
     villageVisited:false,attacksMade:0,startedAt:Date.now(),savedAt:Date.now(),
     logs:[`${scenario.title} 시작. ${scenario.objective}.`,choice==='protect'?`${scenario.protectNote}을 준비했다. 회복약 3개를 보유한다.`:'선봉을 정비했다. 첫 라운드 공격력이 강화된다.'],
@@ -119,7 +122,27 @@ export function undoMove(s: BattleState): boolean {
 
 export function canAttack(s: BattleState, a: Unit, b: Unit): boolean {
   const d = distance(a, b);
-  return controlled(s, a) && alive(b) && hostile(a, b) && d >= a.range[0] && d <= a.range[1];
+  return controlled(s, a) && alive(b) && hostile(a, b) && d >= a.range[0] && d <= a.range[1] && (!getScenario(s.scenarioId).siege||clearShot(a,b,s.scenarioId));
+}
+/** Cell-centre ray, symmetric in both directions. Fortification masonry blocks fire. */
+export function clearShot(a:Point,b:Point,scenarioId:ScenarioId):boolean {
+  const steps=Math.max(Math.abs(a.x-b.x),Math.abs(a.y-b.y))*4;
+  for(let i=1;i<steps;i++)if(terrainAt({x:Math.floor(a.x+.5+(b.x-a.x)*i/steps),y:Math.floor(a.y+.5+(b.y-a.y)*i/steps)},scenarioId)==='wall')return false;
+  return true;
+}
+function siegeApproach(s:BattleState,u:Unit,enemies:Unit[]):Map<string,number>{
+  const scenario=getScenario(s.scenarioId),best=new Map<string,number>(),queue:{x:number;y:number;cost:number}[]=[];
+  for(let y=0;y<scenario.rows;y++)for(let x=0;x<scenario.cols;x++){
+    const p={x,y};if(!Number.isFinite(TERRAIN_INFO[terrainAt(p,s.scenarioId)].cost))continue;
+    if(enemies.some(e=>distance(p,e)>=u.range[0]&&distance(p,e)<=u.range[1]&&clearShot(p,e,s.scenarioId))){best.set(key(p),0);queue.push({...p,cost:0});}
+  }
+  while(queue.length){queue.sort((a,b)=>a.cost-b.cost);const p=queue.shift()!;if(best.get(key(p))!==p.cost)continue;
+    for(const d of [{x:1,y:0},{x:-1,y:0},{x:0,y:1},{x:0,y:-1}]){
+      const q={x:p.x+d.x,y:p.y+d.y};if(!inBounds(q,s.scenarioId))continue;
+      const cost=p.cost+TERRAIN_INFO[terrainAt(p,s.scenarioId)].cost;if(cost<(best.get(key(q))??Infinity)){best.set(key(q),cost);queue.push({...q,cost});}
+    }
+  }
+  return best;
 }
 export function damageFor(a: Unit, b: Unit, scenarioId: ScenarioId = 'shangyong'): number {
   const power = a.attack * (a.buff > 0 ? 1.1 : 1);
@@ -303,7 +326,9 @@ export function aiStep(s: BattleState): { unitId: string; from: Point; result: A
   let targets = enemies.filter(e => canAttack(s, u, e));
   if (!targets.length) {
     const options = reachable(s, u);
+    const approach=getScenario(s.scenarioId).siege?siegeApproach(s,u,enemies):null;
     const score = (p: Point) => u.team==='ally'&&s.tactic==='guard'?Math.max(0,distance(p,findUnit(s,'sima')!)-1):Math.min(...enemies.map(e => {
+      if(approach)return approach.get(key(p))??1e6;
       const d = distance(p, e);
       return d < u.range[0] ? (u.range[0] - d) * 2 : Math.max(0, d - u.range[1]);
     }));
@@ -342,6 +367,20 @@ export function parseSave(raw: string): BattleState | null {
     if (![s.startedAt, s.savedAt].every(n => Number.isFinite(n) && n >= 0) || !Number.isInteger(s.attacksMade) || s.attacksMade < 0) return null;
     if (typeof s.surpriseTriggered !== 'boolean' || typeof s.villageVisited !== 'boolean' || !Array.isArray(s.logs) || s.logs.length > 30 || s.logs.some(l => typeof l !== 'string' || l.length > 300)) return null;
     const blueprint = createBattle(s.choice,184,s.scenarioId);
+    const revision=s.mapRevision??1,currentRevision=scenario.mapRevision??1;
+    if(!Number.isInteger(revision)||revision<1||revision>currentRevision)return null;
+    const migrate=revision<currentRevision;
+    if(migrate){
+      if(!Array.isArray(s.units)||s.units.some(u=>!inBounds(u,s.scenarioId))||new Set(s.units.filter(alive).map(key)).size!==s.units.filter(alive).length)return null;
+      // Only known older geometry moves occupants off newly constructed masonry. Preserve HP/actions.
+      const reserved=new Set(s.units.filter(alive).filter(u=>Number.isFinite(TERRAIN_INFO[terrainAt(u,s.scenarioId)].cost)).map(key));
+      for(const u of s.units.filter(alive))if(!Number.isFinite(TERRAIN_INFO[terrainAt(u,s.scenarioId)].cost)){
+        const free:Point[]=[];for(let y=0;y<scenario.rows;y++)for(let x=0;x<scenario.cols;x++)if(Number.isFinite(TERRAIN_INFO[terrainAt({x,y},s.scenarioId)].cost)&&!reserved.has(key({x,y})))free.push({x,y});
+        free.sort((a,b)=>distance(a,u)-distance(b,u)||a.y-b.y||a.x-b.x);if(!free.length)return null;Object.assign(u,free[0]);reserved.add(key(u));
+      }
+      s.pendingMove=null;s.mapRevision=currentRevision;
+      if(Array.isArray(s.logs))s.logs=[...s.logs,'공성 지도에 맞춰 전열을 조정했습니다. HP와 차례는 유지됩니다.'].slice(-30);
+    }else s.mapRevision=currentRevision;
     if (!Array.isArray(s.units) || s.units.length !== blueprint.units.length) return null;
     if (s.scenarioId==='wuzhang' && !s.events.includes('guo-arrived') && findUnit(s,'guo')?.hp!==0) return null;
     const ids = new Set<string>();

@@ -2,6 +2,7 @@ import type { Point, Terrain, Unit } from './core.ts';
 import {board,deployment,unit,weiArmy,line} from './scenario-kit.ts';
 import {EXTRA_SCENARIOS} from './extra-scenarios.ts';
 import {buildEpisodes,CAMPAIGN_ARCS,type StageId,type ArcId} from './campaign-stages.ts';
+import {applySieges,type Siege} from './siege-scenarios.ts';
 
 export type ScenarioId = 'shangyong' | 'jieting' | 'xicheng' | 'qishan' | 'shangfang' | 'wuzhang' | 'liaodong' | 'gaoping' | 'yangping' | StageId;
 export type Choice = 'protect' | 'advance';
@@ -9,6 +10,7 @@ export interface StoryLine { speaker: string; portrait: string; line: string; no
 export interface Scenario {
   id: ScenarioId; chapter: number; year: number; name: string; title: string;
   arcId?:ArcId; episode?:number;
+  siege?:Siege; mapRevision?:number;
   movementLabel?: '회군'|'호위'|'행군';
   scriptedEvents?:{id:string;round:number;message:string;kind:'notice'|'disrupt'|'rally'}[];
   cols: number; rows: number; turnLimit: number; background: string;
@@ -146,6 +148,7 @@ SCENARIOS.forEach((s,i)=>{
  s.arcId??=s.id as ArcId;s.episode??=CAMPAIGN_ARCS.find(a=>a.id===s.arcId)!.count;
 });
 export const FIRST_SCENARIO_ID=SCENARIOS[0].id;
+applySieges(SCENARIOS);
 export {CAMPAIGN_ARCS};
 export const isScenarioId=(id:unknown):id is ScenarioId=>SCENARIOS.some(s=>s.id===id);
 export const getScenario=(id:ScenarioId='shangyong'):Scenario=>SCENARIOS.find(s=>s.id===id)!;

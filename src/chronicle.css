@@ -149,3 +149,9 @@
  .has-choices .story-choices { flex:0 0 auto; margin-top:54px; }
  .has-choices.story-screen::after { content:''; flex:0 0 calc(80px + env(safe-area-inset-bottom)); min-height:80px; }
 }
+
+.siege-badge { display:inline-block; color:#e8c989; font-size:12px; line-height:1.5; }
+.siege-guide { margin:16px 0; padding:14px; border:1px solid #a88c57; border-radius:6px; background:#293c32; }
+.siege-guide strong { color:#edce8f; }
+.siege-guide p { margin:10px 0; font-size:13px; line-height:1.7; color:#d1d2bd; }
+.siege-guide button { min-height:44px; max-width:100%; padding:8px 14px; white-space:normal; }

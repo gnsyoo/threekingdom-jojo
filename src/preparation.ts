@@ -1,3 +1,4 @@
+import {siegeModeName} from './siege-scenarios.ts';
 import { createBattle, findUnit, deployCommander, key, type BattleState, type Point, type Unit } from './core.ts';
 import { portraitHtml, unitSpriteHtml, artIcon, itemArt, assetUrl, formatGold, unitPortrait } from './art.ts';
 import { icon } from './icons.ts';
@@ -32,7 +33,7 @@ export class Preparation {
       <div class="prep-columns">
         <section class="roster-panel ornate-panel" aria-label="출진 장수 목록"><h2>출진 무장 <span>${roster.filter(unit=>!this.isReserve(unit)).length} / ${roster.length}</span></h2>
           <div class="prep-roster">${roster.map(unit=>`<button class="roster-row ${unit.id===u.id?'selected':''}" data-action="prep-unit" data-unit-id="${unit.id}" aria-pressed="${unit.id===u.id}"><span class="roster-face">${unitPortrait(unit)}</span><span class="roster-name"><strong>${unit.name}</strong><span>${artIcon(unit.role==='기병'?'flag':'sword',20)}${unit.role} <small>Lv.${unit.level}</small></span><em>${this.isReserve(unit)?'3턴 지원 예정':unit.team==='player'?'필수 출진':'위군 우군'}</em></span><span class="roster-sprite">${unitSpriteHtml(unit.sprite)}</span></button>`).join('')}</div>
-          <div class="prep-briefing"><span>${scenario.title}</span><strong>${scenario.objective}</strong><p>${scenario.briefing}</p><button data-action="prep-objective">${icon('scroll',18)}전투 목표 확인</button></div>
+          <div class="prep-briefing"><span>${scenario.title}${scenario.siege?` · ${siegeModeName(scenario.siege.mode)}`:''}</span><strong>${scenario.objective}</strong><p>${scenario.briefing}</p><button data-action="prep-objective">${icon('scroll',18)}전투 목표 확인</button></div>
         </section>
         <section class="prep-character" aria-label="선택 장수와 장비"><div class="prep-portrait-window">${unitPortrait(u)}<div class="character-nameplate ornate-panel"><strong>${u.name}</strong><span>${artIcon('flag',24)}${u.role}</span></div></div>
           <div class="prep-vitals ornate-panel"><div class="prep-level"><strong>Lv. ${u.level}</strong><i class="prep-exp" role="progressbar" aria-label="전투 진행" aria-valuenow="${scenario.chapter}" aria-valuemin="1" aria-valuemax="${SCENARIOS.length}"><b style="width:${scenario.chapter/SCENARIOS.length*100}%"></b></i><span>전투 ${scenario.chapter} / ${SCENARIOS.length}</span></div><div class="prep-meter"><span>${icon('heart',20)}HP</span><strong>${hp} / ${u.maxHp}</strong><i><b style="width:${hp/u.maxHp*100}%"></b></i></div><div class="prep-meter mp"><span>◆ MP</span><strong>${u.mp} / ${u.maxMp}</strong><i><b style="width:${u.maxMp?100:0}%"></b></i></div></div>
