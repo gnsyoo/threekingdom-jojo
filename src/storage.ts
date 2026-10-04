@@ -1,9 +1,9 @@
 import { parseSave, type BattleState } from './core.ts';
 import { isScenarioId, type ScenarioId } from './scenarios.ts';
 
-const SAVE = 'wei-tactics.battle.v1';
-const BACKUP = 'wei-tactics.battle.backup.v1';
-const CAMPAIGN = 'wei-tactics.campaign.v1';
+const SAVE = 'simayi-chronicle.battle.v2';
+const BACKUP = 'simayi-chronicle.battle.backup.v2';
+const CAMPAIGN = 'simayi-chronicle.campaign.v2';
 export function loadCompleted():ScenarioId[] {
   try {
     const data=JSON.parse(localStorage.getItem(CAMPAIGN)??'[]');
@@ -37,6 +37,6 @@ export function saveBattle(s: BattleState): boolean {
 export function exportBattle(s: BattleState) {
   const blob = new Blob([JSON.stringify(s, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = 'wei-tactics-save.json'; a.click();
+  const a = document.createElement('a'); a.href = url; a.download = 'simayi-chronicle-save.json'; a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

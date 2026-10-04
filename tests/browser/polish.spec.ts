@@ -47,17 +47,19 @@ for(const size of sizes)test(`${size.name}: eight UI reviews keep art, controls,
   });
   await page.locator('[data-action="new"]').click();
   await review('02-conversation',async()=>{
-    await expect(page.locator('.dialogue-speaker')).toHaveText('군관');
+    await expect(page.locator('.dialogue-speaker')).toHaveText('사마의 · 독백');
     expect((await page.getByRole('button',{name:'계속',exact:true}).boundingBox())!.height).toBeGreaterThanOrEqual(44);
     await undistortedArt(page);
   });
-  for(let n=0;n<2;n++)await page.getByRole('button',{name:'계속',exact:true}).click();
+  for(let n=0;n<5;n++)await page.getByRole('button',{name:'계속',exact:true}).click();
   await review('03-unselected-strategy',async()=>{
     await expect(page.locator('[data-action="choice-confirm"]')).toBeDisabled();
     await expect(page.locator('.choice-card[aria-pressed="true"]')).toHaveCount(0);
     await expect(page.locator('.choice-heading h2')).toHaveText('이번 출진의 방침');
     const cards=await page.locator('.choice-card').evaluateAll(nodes=>nodes.map(n=>n.getBoundingClientRect()));
     expect(cards[1].x>=cards[0].right-1||cards[1].y>=cards[0].bottom-1).toBe(true);
+    const heading=await page.locator('.story-heading').boundingBox(),choices=await page.locator('.story-choices').boundingBox();
+    expect(heading!.y+heading!.height,'the chapter heading must not overlap strategy selection').toBeLessThanOrEqual(choices!.y+1);
   });
   await page.locator('[data-action="choice-advance"]').click();
   await review('04-selected-strategy',async()=>{
@@ -69,11 +71,16 @@ for(const size of sizes)test(`${size.name}: eight UI reviews keep art, controls,
   });
   await page.locator('[data-action="choice-protect"]').click();await page.locator('[data-action="choice-confirm"]').click();
   await review('05-preparation-portraits',async()=>{
-    for(const id of ['liu','guan','zhang','cao']){
+    for(const id of ['shi','guo','niu','sima']){
       const row=page.locator(`[data-action="prep-unit"][data-unit-id="${id}"]`);await row.scrollIntoViewIfNeeded();
       const scroll=await page.locator('.prep-columns').evaluate(e=>e.scrollTop);await row.click();await undistortedArt(page);
       expect(await page.locator('.prep-columns').evaluate(e=>e.scrollTop)).toBeCloseTo(scroll,0);
-      await expect(page.locator('.character-nameplate strong')).toHaveText({liu:'유비',guan:'관우',zhang:'장비',cao:'조조'}[id]!);
+      await expect(page.locator('.character-nameplate strong')).toHaveText({shi:'사마사',guo:'곽회',niu:'우금',sima:'사마의'}[id]!);
+      if(size.name.includes('phone')||size.name==='tablet')expect(await page.locator('.character-nameplate strong').evaluate(element=>{
+        const range=document.createRange();range.selectNodeContents(element);
+        const rows=[...range.getClientRects()],box=element.parentElement!.getBoundingClientRect();
+        return rows.length===1&&rows.every(r=>r.left>=box.left&&r.right<=box.right&&r.top>=box.top&&r.bottom<=box.bottom);
+      }),'commander names must fit on one line in compact nameplates').toBe(true);
     }
     for(const action of ['prep-equipment','prep-deployment','prep-shop','depart']){
       const box=await page.locator(`.prep-actions [data-action="${action}"]`).boundingBox();
@@ -114,11 +121,18 @@ for(const size of sizes)test(`${size.name}: eight UI reviews keep art, controls,
   await review('08-battle-rendering',async()=>{
     const resolution=await page.locator('#battlefield canvas').evaluate((canvas:HTMLCanvasElement)=>canvas.width/canvas.getBoundingClientRect().width);expect(resolution).toBeCloseTo(Math.min(size.dpr,2),1);
     const heights=await page.evaluate(()=>(window as any).__WEI_DEBUG__.motion().active.map((u:any)=>u.height));
-    expect(Math.max(...heights)).toBeLessThanOrEqual(64.01);expect(Math.max(...heights)-Math.min(...heights)).toBeLessThan(2);
+    expect(Math.max(...heights)).toBeLessThanOrEqual(44.01);expect(Math.min(...heights)).toBeGreaterThan(30);
+    const overflow=await page.evaluate(()=>{
+      const debug=(window as any).__WEI_DEBUG__,state=debug.state();
+      return debug.motion().active.filter((sprite:any)=>{
+        const u=state.units.find((unit:any)=>unit.id===sprite.id),r=sprite.bounds;
+        return u?.hp>0&&(r.x<u.x*64+1||r.y<u.y*64+1||r.x+r.width>(u.x+1)*64-1||r.y+r.height>(u.y+1)*64-1);
+      }).map((sprite:any)=>sprite.id);
+    });expect(overflow,'every idle unit must fit inside its tile').toEqual([]);
     const anchor=async()=>{
       const position=await page.evaluate(()=>(window as any).__WEI_DEBUG__.tile((window as any).__WEI_DEBUG__.state().units[0]));
-      const label=await page.locator('.unit-label[data-unit-id="cao"]').boundingBox();expect(label).toBeTruthy();expect(Math.abs(label!.x+label!.width/2-position.x)).toBeLessThan(2);
-      expect(label!.y).toBeGreaterThan(position.y);expect(await page.locator('.unit-label[data-unit-id="cao"]').evaluate(e=>getComputedStyle(e).fontSize)).toBe('12px');
+      const label=await page.locator('.unit-label[data-unit-id="sima"]').boundingBox();expect(label).toBeTruthy();expect(Math.abs(label!.x+label!.width/2-position.x)).toBeLessThan(2);
+      expect(label!.y).toBeGreaterThan(position.y);expect(await page.locator('.unit-label[data-unit-id="sima"]').evaluate(e=>getComputedStyle(e).fontSize)).toBe('12px');
     };
     await page.waitForTimeout(150);await anchor();
     await page.locator('[data-action="zoom-in"]').click();await page.waitForTimeout(150);await anchor();
@@ -132,17 +146,17 @@ for(const size of sizes)test(`${size.name}: eight UI reviews keep art, controls,
   expect(errors).toEqual([]);await context.close();
 });
 
-for(const id of ['sishui','hulao'])test(`${id}: commanders have a common size and names remain crisp after rotation`,async({browser},info)=>{
+for(const id of ['wuzhang','liaodong'])test(`${id}: commanders have a common size and names remain crisp after rotation`,async({browser},info)=>{
   const context=await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:2,hasTouch:true,isMobile:true});const page=await context.newPage();
   await page.goto('/');await page.locator('[data-action="scenarios"]').click();await page.locator(`[data-scenario-id="${id}"]`).click();
-  for(let n=0;n<2;n++)await page.getByRole('button',{name:'계속',exact:true}).click();await page.locator('[data-action="choice-protect"]').click();await page.locator('[data-action="choice-confirm"]').click();
-  if(id==='sishui'){await page.locator('[data-action="prep-unit"][data-unit-id="sun"]').click();await undistortedArt(page);}
+  for(let n=0;n<5;n++)await page.getByRole('button',{name:'계속',exact:true}).click();await page.locator('[data-action="choice-protect"]').click();await page.locator('[data-action="choice-confirm"]').click();
+  if(id==='wuzhang'){await page.locator('[data-action="prep-unit"][data-unit-id="niu"]').click();await undistortedArt(page);}
   await page.locator('[data-action="depart"]').click();await page.waitForFunction(()=>(window as any).__WEI_DEBUG__?.ready());
-  const heights=await page.evaluate(()=>(window as any).__WEI_DEBUG__.motion().active.map((u:any)=>u.height));expect(Math.max(...heights)).toBeLessThanOrEqual(64.01);expect(Math.min(...heights)).toBeGreaterThan(62);
+  const heights=await page.evaluate(()=>(window as any).__WEI_DEBUG__.motion().active.map((u:any)=>u.height));expect(Math.max(...heights)).toBeLessThanOrEqual(44.01);expect(Math.min(...heights)).toBeGreaterThan(30);
   await page.locator('[data-action="overview"]').click();await page.waitForTimeout(150);
   const boss=await page.evaluate(()=>(window as any).__WEI_DEBUG__.state().units.find((u:any)=>u.boss));
   const point=await page.evaluate(p=>(window as any).__WEI_DEBUG__.tile(p),boss);await page.touchscreen.tap(point.x,point.y);
-  await expect(page.locator(`#unit-panel .portrait-${id==='sishui'?'hua':'lubu'}`)).toBeVisible();await undistortedArt(page);
+  await expect(page.locator(`#unit-panel .portrait-${id==='wuzhang'?'zhuge':'gongsun'}`)).toBeVisible();await undistortedArt(page);
   await page.locator('[data-action="focus"]').click();
   for(const viewport of [{width:844,height:390},{width:390,height:844}]){
     await page.setViewportSize(viewport);await expect.poll(async()=>Math.round((await page.locator('#battlefield canvas').boundingBox())!.width)-Math.round((await page.locator('#map-area').boundingBox())!.width)).toBe(0);

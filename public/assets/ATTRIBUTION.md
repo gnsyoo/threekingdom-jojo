@@ -2,6 +2,15 @@
 
 The following images were newly generated for this project using the image generation tool, guided by the project's original concept art. They are not extracted from the original Cao Cao game:
 
+Current Sima Yi campaign (generated 2026-10-04):
+
+- `sima-portraits.png`: original Sima Yi, Sima Shi, Niu Jin (牛金), Guo Huai, Hu Zun, Meng Da, Zhuge Liang, Gongsun Yuan, in a 4×2 portrait atlas.
+- `sima-motion.png`: the same eight characters, eight poses per row: four walk and four attack, 64 new frames. The PNG remains unmodified; `sima-motion.json` describes inspected alpha bounds and centered pivots.
+- `shangyong-map.png`, `wuzhang-map.png`, `liaodong-map.png`: newly generated Shangyong mountain town, Wuzhang defensive plateau, and Xiangping siege maps. No units or interface lettering are baked into these maps.
+- General infantry and archers retain 16 frames from `units-walk.png`/`units-attack.png`.
+
+Previously generated Cao Cao campaign artwork, retained as project history:
+
 - `battlefield.png`: tactical battlefield background.
 - `sishui.png`, `hulao.png`: new Sishui and Hulao Pass battlefields, based on this project's battlefield style.
 - `campaign-portraits.png`: Sun Jian, Hua Xiong, Lü Bu, and a spare alliance officer in a transparent 2×2 atlas.
@@ -15,7 +24,7 @@ The following images were newly generated for this project using the image gener
 
 `unit-motion.json` and `boss-motion.json` contain project-authored source rectangle, foot pivot, and scale metadata for the unmodified motion atlases. `ui/frame.svg` and `ui/ink-paper.svg` are project-authored decorative frame and paper illustrations. Menus, text, health bars, and deployment markers remain live interface elements.
 
-The bundled font subsets are Noto Sans KR and Noto Serif KR. They were rebuilt from the official Google Fonts variable TTFs for every Korean/Han character in the current UI (341 characters) and are self-hosted so the game does not contact a font service during play.
+The bundled font subsets are Noto Sans KR and Noto Serif KR. They were rebuilt from the official Google Fonts variable TTFs for every Korean/Han character in the current UI (413 characters) and are self-hosted so the game does not contact a font service during play.
 
 - Noto CJK source: https://github.com/notofonts/noto-cjk
 - Font licenses: `fonts/Sans-LICENSE.txt` and `fonts/Serif-LICENSE.txt` (SIL Open Font License 1.1)
@@ -29,4 +38,4 @@ Sources used on 2026-10-03:
 
 When adding dialogue with new characters, expand the subsets with `scripts/build-font-subsets.py --source-dir <directory>` (requires Python and fonttools; the directory contains the two source files named `sans.ttf` and `serif.ttf`). The script subsets the sources before instantiating weights 400/500/600/700 and verifies coverage. Normal npm builds use the committed files. The existing CSS also includes system serif and sans-serif fallback families.
 
-The UI fits portrait/item atlas rectangles without distorting their aspect ratio. Battle idle poses use the first walk frame, at the same 64-world-pixel maximum height as all other units. Smooth texture filtering and a canvas density capped at 2 improve scaled rendering; source illustrations remain the generated project artwork listed above.
+The UI fits portrait/item atlas rectangles without distorting their aspect ratio. Battle idle poses use the first walk frame, with both width and height capped at 44 world pixels, including weapons, to stay inside a 64-pixel tile. Smooth texture filtering and a canvas density capped at 2 improve scaled rendering; source illustrations remain the generated project artwork listed above.

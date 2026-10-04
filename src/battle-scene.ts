@@ -16,7 +16,6 @@ export class BattleScene extends Phaser.Scene {
   private overlay!: Phaser.GameObjects.Graphics;
   private nodes = new Map<string, Phaser.GameObjects.Container>();
   private positions = new Map<string, Point>();
-  private fire: Phaser.GameObjects.Graphics | null = null;
   private current: MapPresentation | null = null;
   private pointerStart = { x: 0, y: 0 }; private lastPointer = { x: 0, y: 0 };
   private dragged = false; private pinch = 0; private pinchUntil = 0;
@@ -33,28 +32,25 @@ export class BattleScene extends Phaser.Scene {
   private landmarkLabel!: HTMLDivElement;
 
   private readonly scenario:Scenario;
-  constructor(scenarioId:ScenarioId='yeongcheon') { super('battle');this.scenario=getScenario(scenarioId); }
+  constructor(scenarioId:ScenarioId='shangyong') { super('battle');this.scenario=getScenario(scenarioId); }
   preload() {
     this.load.image('ground', `${import.meta.env.BASE_URL}assets/${this.scenario.background}`);
-    this.load.image('troops', `${import.meta.env.BASE_URL}assets/units.png`);
     this.load.image('walk', `${import.meta.env.BASE_URL}assets/units-walk.png`);
     this.load.image('attack', `${import.meta.env.BASE_URL}assets/units-attack.png`);
-    if(this.scenario.id!=='yeongcheon'){this.load.image('boss-motion',`${import.meta.env.BASE_URL}assets/boss-motion.png`);this.load.json('boss-data',`${import.meta.env.BASE_URL}assets/boss-motion.json`);}
+    this.load.image('sima-motion',`${import.meta.env.BASE_URL}assets/sima-motion.png`);
+    this.load.json('sima-motion-data',`${import.meta.env.BASE_URL}assets/sima-motion.json`);
     this.load.json('unit-motion', `${import.meta.env.BASE_URL}assets/unit-motion.json`);
   }
   create() {
-    const atlas = this.textures.get('troops');
-    const source = atlas.getSourceImage() as HTMLImageElement;
-    const w = source.width / 4, h = source.height / 2;
-    for (let i = 0; i < 8; i++) atlas.add(`unit-${i}`, 0, (i % 4) * w, Math.floor(i / 4) * h, w, h);
-    this.motionData = this.cache.json.get('unit-motion');
-    if(this.scenario.id!=='yeongcheon'){const extras=this.cache.json.get('boss-data');for(const id of [8,9])for(const kind of ['walk','attack'] as const)this.motionData[kind].units[id]={...extras[id][kind],texture:'boss-motion'};}
+    this.motionData = structuredClone(this.cache.json.get('unit-motion'));
+    const extras=this.cache.json.get('sima-motion-data');
+    for(const unit of extras.units)for(const kind of ['walk','attack'] as const)this.motionData[kind].units[unit.sprite]={...unit[kind],texture:'sima-motion'};
     for (const kind of ['walk','attack'] as const) {
       this.motionData[kind].units.forEach((unit,index)=>{
         const textureKey=unit.texture??kind,texture=this.textures.get(textureKey),frameName=(pose:number)=>unit.texture?`${kind}-${index}-${pose}`:`${index}-${pose}`;
         unit.frames.forEach((rect,pose)=>{
           const frame=texture.add(frameName(pose),0,rect.x,rect.y,rect.width,rect.height);
-          if(frame){frame.customPivot=true;frame.pivotX=rect.pivotX;frame.pivotY=rect.pivotY;}
+          if(frame){frame.customPivot=true;frame.pivotX=.5;frame.pivotY=1;}
         });
         this.anims.create({key:`${kind}-${index}`,frames:unit.frames.map((_f,pose)=>({key:textureKey,frame:frameName(pose)})),frameRate:kind==='walk'?12:10,repeat:kind==='walk'?-1:0,skipMissedFrames:false});
       });
@@ -103,9 +99,9 @@ export class BattleScene extends Phaser.Scene {
     const cover = Math.max(this.scale.width / (this.scenario.cols * TILE), this.scale.height / (this.scenario.rows * TILE));
     camera.setZoom(this.overview ? fit : portrait ? .9*this.renderDensity : Math.max(cover,(this.scale.width/this.renderDensity<850?.82:.85)*this.renderDensity));
     this.updateBounds();
-    const cao = this.current?.state.units.find(u => u.id === 'cao');
+    const sima = this.current?.state.units.find(u => u.id === 'sima');
     if(this.overview)camera.centerOn(this.scenario.cols*TILE/2,this.scenario.rows*TILE/2);
-    else if(initial&&(portrait||this.scale.height<440)&&cao)this.centerOn(cao);
+    else if(initial&&(portrait||this.scale.height<440)&&sima)this.centerOn(sima);
     else if(initial)camera.centerOn(this.scenario.cols*TILE/2,this.scenario.rows*TILE/2);
     else camera.centerOn(center.x,center.y);
   }
@@ -142,7 +138,7 @@ export class BattleScene extends Phaser.Scene {
     if(data.threat){
       const danger=new Set<string>();
       for(const boss of state.units.filter(u=>u.boss&&u.hp>0)){
-        const positions=boss.id==='lubu'&&state.round<3?[boss]:movementRange(state,boss);
+        const positions=(boss.id==='gongsun'&&state.round<3)||boss.id==='zhuge'?[boss]:movementRange(state,boss);
         for(const position of positions)for(let dy=-boss.range[1];dy<=boss.range[1];dy++)for(let dx=-boss.range[1];dx<=boss.range[1];dx++){
           const point={x:position.x+dx,y:position.y+dy},distance=Math.abs(dx)+Math.abs(dy);
           if(inBounds(point,state.scenarioId)&&distance>=boss.range[0]&&distance<=boss.range[1])danger.add(key(point));
@@ -150,7 +146,7 @@ export class BattleScene extends Phaser.Scene {
       }
       for(const point of danger){const [x,y]=point.split(',').map(Number);g.fillStyle(0xc45550,.2).fillRect(x*TILE+1,y*TILE+1,TILE-2,TILE-2);g.lineStyle(1,0xe1a176,.45).strokeRect(x*TILE+1,y*TILE+1,TILE-2,TILE-2);}
     }
-    const actor = state.units.find(u => u.id === 'cao')!;
+    const actor = state.units.find(u => u.id === 'sima')!;
     if (mode === 'attack' && !actor.acted && state.phase === 'player') {
       for (const p of [{ x: actor.x + 1, y: actor.y }, { x: actor.x - 1, y: actor.y }, { x: actor.x, y: actor.y + 1 }, { x: actor.x, y: actor.y - 1 }]) {
         g.fillStyle(0xc46545, .22).fillRect(p.x * TILE + 2, p.y * TILE + 2, TILE - 4, TILE - 4); g.lineStyle(2, 0xe2a273, .65).strokeRect(p.x * TILE + 2, p.y * TILE + 2, TILE - 4, TILE - 4);
@@ -173,10 +169,10 @@ export class BattleScene extends Phaser.Scene {
       const previous = this.positions.get(u.id);
       let node = this.nodes.get(u.id);
       if (!node) {
-        node = this.add.container((u.x + .5) * TILE, (u.y + 1) * TILE - 7).setDepth(10 + u.y);
+        node = this.add.container((u.x + .5) * TILE, (u.y + 1) * TILE - 14).setDepth(10 + u.y);
         const teamColor=u.team==='player'?0x69c5ff:u.team==='ally'?0x6ee9c0:0xff776e;
-        node.add(this.add.ellipse(0,-1,u.role==='기병'?56:46,16).setStrokeStyle(1.5,teamColor,.6));
-        const sprite=this.add.sprite(0,0,u.sprite>=8?'boss-motion':'troops',u.sprite>=8?`walk-${u.sprite}-0`:`unit-${u.sprite}`);this.idle(u,sprite);
+        node.add(this.add.ellipse(0,-1,40,12).setStrokeStyle(1.5,teamColor,.6));
+        const sprite=this.add.sprite(0,0,'walk');this.idle(u,sprite);
         sprite.name = 'sprite'; node.add(sprite);
         sprite.on(Phaser.Animations.Events.ANIMATION_UPDATE,(_animation:Phaser.Animations.Animation,frame:Phaser.Animations.AnimationFrame)=>{
           this.motionFrames.push({id:u.id,kind:_animation.key.startsWith('attack-')?'attack':'walk',frame:frame.textureFrame});
@@ -187,10 +183,10 @@ export class BattleScene extends Phaser.Scene {
         const health = this.add.graphics(); health.name = 'health'; node.add(health);
         const label=document.createElement('div');label.className=`battle-label unit-label ${u.team}`;label.dataset.unitId=u.id;
         const symbol=document.createElement('span');symbol.className='team-symbol';symbol.textContent=u.team==='player'?'◆':u.team==='ally'?'●':'▲';
-        label.append(symbol,document.createTextNode(u.name.replace('동탁군 ','')));this.labelLayer.append(label);this.labels.set(u.id,label);
+        label.append(symbol,document.createTextNode(u.name.replace(/^(맹달군|촉군|요동) /,'')));this.labelLayer.append(label);this.labels.set(u.id,label);
         this.nodes.set(u.id, node);
       }
-      const x = (u.x + .5) * TILE, y = (u.y + 1) * TILE - 7;
+      const x = (u.x + .5) * TILE, y = (u.y + 1) * TILE - 14;
       node.setDepth(10 + u.y);
       if (previous && key(previous) !== key(u)) {
         const route=structuredClone(state), moving=findUnit(route,u.id)!;
@@ -204,8 +200,8 @@ export class BattleScene extends Phaser.Scene {
       sprite.setAlpha(u.acted && state.phase === u.team ? .88 : 1);
       const flag = node.getByName('flag') as Phaser.GameObjects.Graphics;
       const color = u.team === 'player' ? 0x69c5ff : u.team === 'ally' ? 0x6ee9c0 : 0xff776e;
-      flag.clear().lineStyle(2, 0xdfc28c).lineBetween(-24, -38, -24, -62);
-      flag.fillStyle(color).fillTriangle(-23, -63, -9, -59, -23, -53);
+      flag.clear().lineStyle(1.5, 0xdfc28c).lineBetween(-23, -26, -23, -45);
+      flag.fillStyle(color).fillTriangle(-22, -46, -11, -42, -22, -36);
       const health = node.getByName('health') as Phaser.GameObjects.Graphics;
       health.clear().fillStyle(0x05101a,1).fillRoundedRect(-24,2,48,8,2).lineStyle(1,0xe4e8db,1).strokeRoundedRect(-24,2,48,8,2);
       health.fillStyle(color).fillRoundedRect(-23,3,46*u.hp/u.maxHp,6,1);
@@ -217,14 +213,6 @@ export class BattleScene extends Phaser.Scene {
           g.lineBetween(cx, cy, cx + sx * 14, cy); g.lineBetween(cx, cy, cx, cy + sy * 14);
         }
       }
-    }
-    if (state.fireTriggered && !this.fire) {
-      this.fire = this.add.graphics().setDepth(4);
-      for (const p of [{ x: 11.4, y: 2.4 }, { x: 12.1, y: 2.1 }, { x: 12.7, y: 2.8 }]) {
-        this.fire.fillStyle(0xcc6b2d, .8).fillRect(p.x * TILE, p.y * TILE, 12, 18);
-        this.fire.fillStyle(0xebc266, .9).fillRect(p.x * TILE + 3, p.y * TILE + 4, 6, 12);
-      }
-      this.tweens.add({ targets: this.fire, alpha: .55, duration: 380, yoyo: true, repeat: -1 });
     }
   }
   update() {
@@ -245,11 +233,14 @@ export class BattleScene extends Phaser.Scene {
   }
   private idle(u: Unit, sprite: Phaser.GameObjects.Sprite) {
     if(!sprite.active) return;
-    const unit=this.motionData.walk.units[u.sprite],scale=64/Math.max(...unit.frames.map(frame=>frame.height));
+    const unit=this.motionData.walk.units[u.sprite],scale=this.spriteScale(unit);
     sprite.stop().setTexture(unit.texture??'walk',unit.texture?`walk-${u.sprite}-0`:`${u.sprite}-0`).setScale(scale);
   }
+  private spriteScale(unit:MotionAtlas['units'][number]) {
+    return Math.min(44/Math.max(...unit.frames.map(frame=>frame.height)),44/Math.max(...unit.frames.map(frame=>frame.width)));
+  }
   private playMotion(kind: 'walk'|'attack',u:Unit,sprite:Phaser.GameObjects.Sprite) {
-    const scale=64/Math.max(...this.motionData[kind].units[u.sprite].frames.map(frame=>frame.height));
+    const scale=this.spriteScale(this.motionData[kind].units[u.sprite]);
     sprite.play(`${kind}-${u.sprite}`,true).setScale(scale);
     sprite.anims.timeScale=this.current?.fast?1.6:1;
   }
@@ -262,7 +253,7 @@ export class BattleScene extends Phaser.Scene {
     const end=this.time.now+path.length*duration;
     this.activeWalks.add(u.id); this.visualUntil=Math.max(this.visualUntil,end);
     this.tweens.chain({targets:node,tweens:path.map((point,index)=>({
-      x:(point.x+.5)*TILE,y:(point.y+1)*TILE-7,duration,ease:'Linear',
+      x:(point.x+.5)*TILE,y:(point.y+1)*TILE-14,duration,ease:'Linear',
       onStart:()=>{const previous=path[index-1]??from;if(point.x!==previous.x)sprite.setFlipX(point.x<previous.x);node.setDepth(10+point.y);},
     })),onComplete:()=>{this.activeWalks.delete(u.id);this.idle(u,sprite);}});
   }
@@ -289,7 +280,7 @@ export class BattleScene extends Phaser.Scene {
       sprite.on(Phaser.Animations.Events.ANIMATION_UPDATE,peak);
       sprite.once(completeKey,complete);sprite.once(Phaser.GameObjects.Events.DESTROY,complete);
       sprite.setFlipX(target.x<u.x);this.playMotion('attack',u,sprite);this.counts.attacks++;
-      this.tweens.add({targets:node,x:x+dx/length*12,y:y+dy/length*8,duration:duration*.28,yoyo:true,ease:'Sine.easeInOut'});
+      this.tweens.add({targets:node,x:x+dx/length*4,y:y+dy/length*3,duration:duration*.28,yoyo:true,ease:'Sine.easeInOut'});
       if(u.role==='궁병') {
         const arrow=this.add.graphics().setDepth(90).setPosition(x,y-32);
         arrow.lineStyle(2,0xead4a3).lineBetween(-8,0,8,0);
@@ -318,7 +309,7 @@ export class BattleScene extends Phaser.Scene {
     this.counts.impacts++;
     if(sprite?.active){
       if(!hit.missed){sprite.setTintFill(0xffe5ba);this.time.delayedCall(75,()=>{if(sprite.active)sprite.clearTint();});}
-      this.tweens.add({targets:sprite,x:hit.missed?8:3,duration:65,yoyo:true,repeat:hit.missed?0:1,onComplete:()=>{if(sprite.active)sprite.x=0;}});
+      this.tweens.add({targets:sprite,x:hit.missed?4:3,duration:65,yoyo:true,repeat:hit.missed?0:1,onComplete:()=>{if(sprite.active)sprite.x=0;}});
     }
     if(!hit.missed) {
       const slash=this.add.graphics().setDepth(95).setPosition((u.x+.5)*TILE,(u.y+.45)*TILE);
@@ -337,7 +328,7 @@ export class BattleScene extends Phaser.Scene {
     while(this.ready&&this.motionBusy()) await this.pauseMotion(30);
   }
   motionSnapshot() {
-    return { ...this.counts, frames:this.motionFrames.map(frame=>({...frame})), busy:this.motionBusy(), active:[...this.nodes].map(([id,node])=>{const sprite=node.getByName('sprite') as Phaser.GameObjects.Sprite;return {id,texture:sprite.texture.key,frame:sprite.frame.name,playing:sprite.anims.isPlaying,width:sprite.displayWidth,height:sprite.displayHeight};}) };
+    return { ...this.counts, frames:this.motionFrames.map(frame=>({...frame})), busy:this.motionBusy(), active:[...this.nodes].map(([id,node])=>{const sprite=node.getByName('sprite') as Phaser.GameObjects.Sprite,bounds=sprite.getBounds();return {id,texture:sprite.texture.key,frame:sprite.frame.name,playing:sprite.anims.isPlaying,width:sprite.displayWidth,height:sprite.displayHeight,bounds:{x:bounds.x,y:bounds.y,width:bounds.width,height:bounds.height}};}) };
   }
 }
 

@@ -22,7 +22,7 @@ async function textFits(page:Page){
 async function choose(page:Page,id:ScenarioId){
   await page.goto('/');await page.locator('[data-action="scenarios"]').tap();await textFits(page);
   await page.locator(`[data-scenario-id="${id}"]`).tap();
-  for(let i=0;i<2;i++)await page.getByRole('button',{name:'계속',exact:true}).tap();
+  for(let i=0;i<5;i++)await page.getByRole('button',{name:'계속',exact:true}).tap();
   await page.locator('[data-action="choice-protect"]').tap();await textFits(page);
   const box=await page.locator('.dialogue-bottom [data-action="choice-confirm"]').boundingBox();expect(box!.height).toBeGreaterThanOrEqual(44);
   await page.locator('[data-action="choice-confirm"]').tap();
@@ -30,28 +30,28 @@ async function choose(page:Page,id:ScenarioId){
 async function ready(page:Page){await page.waitForFunction(()=>(window as any).__WEI_DEBUG__?.ready());}
 async function fast(page:Page){await page.locator('[data-action="pause"]').first().tap();await textFits(page);await page.locator('[data-action="speed-fast"]').tap();await page.locator('.modal-footer [data-action="close-modal"]').tap();}
 
-for(const [width,height,id] of [[320,568,'yeongcheon'],[390,844,'sishui'],[412,915,'hulao']] as const)test(`${id} at ${width}×${height} has readable portrait controls, undistorted deployment and resumable events`,async({browser})=>{
+for(const [width,height,id] of [[320,568,'shangyong'],[390,844,'wuzhang'],[412,915,'liaodong']] as const)test(`${id} at ${width}×${height} has readable portrait controls, undistorted deployment and resumable events`,async({browser})=>{
   const context=await browser.newContext({viewport:{width,height},hasTouch:true,isMobile:true,deviceScaleFactor:2});const page=await context.newPage();
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await choose(page,id);await textFits(page);
   for(const action of ['prep-equipment','prep-deployment','prep-shop','depart']){
     const b=await page.locator(`.prep-actions [data-action="${action}"]`).boundingBox();expect(b!.width).toBeGreaterThanOrEqual(44);expect(b!.height).toBeGreaterThanOrEqual(44);expect(b!.y+b!.height).toBeLessThanOrEqual(height);
   }
   const map=await page.locator('.prep-map').boundingBox();expect(map!.width/map!.height).toBeCloseTo(getScenario(id).cols/getScenario(id).rows,2);
-  await page.locator('[data-action="prep-unit"][data-unit-id="guan"]').tap();await page.locator('.prep-actions [data-action="prep-equipment"]').tap();await textFits(page);await expect(page.locator('.modal').getByText('청룡도',{exact:true})).toBeVisible();await page.locator('.modal-footer [data-action="close-modal"]').tap();
+  await page.locator(`[data-action="prep-unit"][data-unit-id="${id==='liaodong'?'hu':'guo'}"]`).tap();await page.locator('.prep-actions [data-action="prep-equipment"]').tap();await textFits(page);await expect(page.locator('.modal').getByText(id==='liaodong'?'지휘검':'철궁',{exact:true})).toBeVisible();await page.locator('.modal-footer [data-action="close-modal"]').tap();
   await page.locator('.prep-actions [data-action="prep-deployment"]').tap();await textFits(page);await page.locator('[data-action="prep-deploy-confirm"]').tap();
   await page.locator('.prep-actions [data-action="prep-shop"]').tap();await textFits(page);await page.locator('.modal-footer [data-action="close-modal"]').tap();
   await page.locator('[data-action="depart"]').tap();await ready(page);await textFits(page);
-  const canvas=await page.locator('#battlefield canvas').boundingBox(),info=await page.locator('#unit-panel').boundingBox();expect(canvas!.height).toBeGreaterThan(120);expect(info!.y).toBeGreaterThanOrEqual(canvas!.y+canvas!.height-1);await expect(page.locator('#unit-panel .unit-name h2')).toHaveText('조조');
+  const canvas=await page.locator('#battlefield canvas').boundingBox(),info=await page.locator('#unit-panel').boundingBox();expect(canvas!.height).toBeGreaterThan(120);expect(info!.y).toBeGreaterThanOrEqual(canvas!.y+canvas!.height-1);await expect(page.locator('#unit-panel .unit-name h2')).toHaveText('사마의');
   for(const action of ['move','attack','encourage','potion','wait','end-turn']){const b=await page.locator(`[data-action="${action}"]`).boundingBox();expect(b!.width).toBeGreaterThanOrEqual(44);expect(b!.height).toBeGreaterThanOrEqual(44);expect(b!.y+b!.height).toBeLessThanOrEqual(height);}
-  await fast(page);const target=id==='yeongcheon'?2:3;
+  await fast(page);const target=id==='shangyong'?2:3;
   for(let round=1;round<target;round++){await page.locator('[data-action="wait"]').tap();await page.locator('[data-action="end-turn"]').tap();await page.waitForFunction(n=>{const s=(window as any).__WEI_DEBUG__.state();return s.round===n&&s.phase==='player';},round+1,{timeout:45000});}
-  const before=await page.evaluate(()=>(window as any).__WEI_DEBUG__.state());expect(before.scenarioId).toBe(id);if(id!=='yeongcheon')expect(before.events).toContain(id==='sishui'?'guan-arrived':'lubu-charge');
+  const before=await page.evaluate(()=>(window as any).__WEI_DEBUG__.state());expect(before.scenarioId).toBe(id);if(id!=='shangyong')expect(before.events).toContain(id==='wuzhang'?'guo-arrived':'xiangping-counterattack');
   await page.screenshot({path:`test-results/portrait-${id}.png`});await page.reload();await textFits(page);await page.getByRole('button',{name:/전투 이어하기/}).tap();await ready(page);
   expect(await page.evaluate(()=>(window as any).__WEI_DEBUG__.state().events)).toEqual(before.events);await textFits(page);expect(errors).toEqual([]);await context.close();
 });
 
 test('portrait touch movement survives two rotations, zoom and drag without changing the saved battle',async({browser})=>{
-  const context=await browser.newContext({viewport:{width:390,height:844},hasTouch:true,isMobile:true});const page=await context.newPage();await choose(page,'yeongcheon');await page.locator('[data-action="depart"]').tap();await ready(page);
+  const context=await browser.newContext({viewport:{width:390,height:844},hasTouch:true,isMobile:true});const page=await context.newPage();await choose(page,'shangyong');await page.locator('[data-action="depart"]').tap();await ready(page);
   const tapTile=async()=>{const p=await page.evaluate(()=>(window as any).__WEI_DEBUG__.tile({x:6,y:8}));await page.touchscreen.tap(p.x,p.y);};
   await tapTile();await expect(page.getByText('이곳으로 이동',{exact:true})).toBeVisible();await textFits(page);await page.locator('[data-action="confirm"]').tap();
   await page.waitForFunction(()=>!(window as any).__WEI_DEBUG__.motion().busy);
@@ -65,6 +65,6 @@ test('portrait touch movement survives two rotations, zoom and drag without chan
 
 test('tablet portrait uses the same preparation sheet and keeps the conversation button intact',async({page})=>{
   await page.setViewportSize({width:768,height:1024});await page.goto('/');await page.locator('[data-action="new"]').click();
-  for(let i=0;i<2;i++)await page.getByRole('button',{name:'계속',exact:true}).click();await page.locator('[data-action="choice-advance"]').click();await textFits(page);await page.locator('[data-action="choice-confirm"]').click();await textFits(page);
+  for(let i=0;i<5;i++)await page.getByRole('button',{name:'계속',exact:true}).click();await page.locator('[data-action="choice-advance"]').click();await textFits(page);await page.locator('[data-action="choice-confirm"]').click();await textFits(page);
   const sections=await page.locator('.prep-columns > *').evaluateAll(elements=>elements.map(e=>e.getBoundingClientRect()));expect(sections[1].y).toBeLessThan(sections[0].y);expect(sections[2].y).toBeGreaterThan(sections[0].y);
 });

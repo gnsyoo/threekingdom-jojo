@@ -6,12 +6,15 @@ function atlasImage(file: string, sourceWidth: number, sourceHeight: number, rec
   return `<svg class="${className}" viewBox="0 0 ${width} ${height}" preserveAspectRatio="${fit}" role="img" aria-label="${label}"><svg width="${width}" height="${height}" viewBox="${x} ${y} ${width} ${height}" overflow="hidden"><image href="${assetUrl(file)}" width="${sourceWidth}" height="${sourceHeight}" /></svg></svg>`;
 }
 export function portraitHtml(id: string, name: string, className = ''): string {
-  if (id === 'cao') return `<img class="painted-portrait ${className}" src="${assetUrl('cao-cao.png')}" alt="${name}" />`;
-  const campaign = ['sun','hua','lubu'].includes(id);
-  const cells: Record<string, [number, number]> = {liu:[0,0],guan:[1,0],zhang:[0,1],officer:[1,1],sun:[0,0],hua:[1,0],lubu:[0,1]};
-  const [col, row] = cells[id] ?? cells.officer;
-  const width = campaign ? 1356 : 1254, height = campaign ? 1159 : 1254;
-  return atlasImage(campaign?'campaign-portraits.png':'portraits.png',width,height,[col*width/2,row*height/2,width/2,height/2],name,`painted-portrait portrait-atlas ${campaign?'portrait-campaign':''} portrait-${id} ${className}`);
+  const cells:Record<string,number>={sima:0,shi:1,niu:2,guo:3,hu:4,mengda:5,zhuge:6,gongsun:7};
+  const cell=cells[id]??2,width=1774,height=887,w=width/4,h=height/2;
+  return atlasImage('sima-portraits.png',width,height,[cell%4*w,Math.floor(cell/4)*h,w,h],name,`painted-portrait portrait-atlas portrait-${id} ${className}`);
+}
+
+export function unitSpriteHtml(sprite:number,className='') {
+  const row:Record<number,number>={0:0,1:1,2:2,3:3,8:4,6:5,7:6,9:7};
+  const size=1254,cell=size/8,rows=[0,167,326,483,637,796,947,1100,1254],r=row[sprite]??2;
+  return atlasImage('sima-motion.png',size,size,[0,rows[r],cell,rows[r+1]-rows[r]],'',`unit-miniature ${className}`,'xMidYMid meet');
 }
 
 export function formatGold(amount: number) {
@@ -19,6 +22,9 @@ export function formatGold(amount: number) {
 }
 
 const art: Record<string, string> = {
+  fan: '<g stroke="#bda16a" stroke-width="1.2" fill="#233b4a"><path d="M29 44 7 22Q1 9 15 8l16 32Z"/><path d="M29 44 17 12Q17 2 29 4l4 35Z"/><path d="M29 44 30 9Q35-1 43 8L35 41Z"/><path d="M29 44 43 15Q52 8 55 20L36 44Z"/></g><path d="M29 42 34 56" stroke="#e3c483" stroke-width="5"/><path d="m12 15 17 26M24 10l7 29M38 10l-5 29M49 20 35 40" fill="none" stroke="#728c96"/>',
+  bow: '<path d="M17 5Q52 30 17 55" fill="none" stroke="#c29b5b" stroke-width="5"/><path d="M17 5 25 30 17 55M8 30h42" fill="none" stroke="#e8d7ae" stroke-width="1.7"/><path d="m47 25 8 5-8 5Z" fill="#b4c5cd"/><path d="m8 25 6 5-6 5" fill="none" stroke="#ae7952" stroke-width="2"/>',
+  spear: '<path d="M11 54 44 15" stroke="#bd9b62" stroke-width="5"/><path d="m40 18 3-12 12-4-4 12-9 7Z" fill="#ced9d7" stroke="#6b8087" stroke-width="1.5"/><path d="m40 19-10 9 8-2-2 8 11-12" fill="#4a8495"/>',
   move: '<g fill="#d2b579" stroke="#4b3826"><path d="m10 7 9-2 4 17-3 8-1 10 6 6-1 7-19 3-2-10 5-5 1-12Z"/><path d="m36 3 9 2-2 20 1 9 8 8-1 7-19 3-3-11 5-8-1-12Z"/></g><g stroke="#f7e0a3" stroke-width="2"><path d="m10 15 11-2M10 21l12-2M8 28l12-2M36 13l8 2M34 21l9 2M35 28l9 2"/></g>',
   sword: '<g stroke="#4d3925" stroke-width="1.5"><path d="m11 3 9 4 22 32-5 5L13 14Z" fill="#ebe9cd"/><path d="m46 3-9 4L15 39l5 5 24-30Z" fill="#bfc8b5"/><path d="m10 37 16 11-3 5L6 42Z" fill="#d7b06c"/><path d="m48 37-16 11 3 5 17-11Z" fill="#d7b06c"/><path d="m16 45-8 12M40 45l8 12" stroke="#987042" stroke-width="5"/></g>',
   scroll: '<g stroke="#6c512d" stroke-width="1.5"><path d="m15 6 25 7-15 36-25-7Z" fill="#dcc596"/><path d="m18 5 6 3-17 40-6-3Z" fill="#bda06c"/><ellipse cx="20" cy="7" rx="5" ry="3" fill="#ede0b5"/><path d="m40 13 5 3-16 36-5-2Z" fill="#a58651"/><path d="m22 18 12 4M18 25l12 4M15 32l12 4M19 12 14 9" stroke="#8b7957"/><path d="m15 28 21 8" stroke="#63523a" stroke-width="3"/></g>',
