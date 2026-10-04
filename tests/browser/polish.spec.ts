@@ -47,7 +47,7 @@ for(const size of sizes)test(`${size.name}: eight UI reviews keep art, controls,
   });
   await page.locator('[data-action="new"]').click();
   await review('02-conversation',async()=>{
-    await expect(page.locator('.dialogue-speaker')).toHaveText('사마의 · 독백');
+    await expect(page.locator('.dialogue-speaker')).toHaveText('사마의');
     expect((await page.getByRole('button',{name:'계속',exact:true}).boundingBox())!.height).toBeGreaterThanOrEqual(44);
     await undistortedArt(page);
   });

@@ -233,7 +233,7 @@ export function applyScenarioEvents(s:BattleState):void {
   if(s.scenarioId==='shangyong'&&s.round>=2&&!s.events.includes('mengda-isolated')) {
     s.surpriseTriggered=true;s.events.push('mengda-isolated');
     for(const u of s.units.filter(u=>u.team==='enemy'&&!u.boss&&alive(u)&&u.x<15))u.confused=1;
-    log(s,'급습대가 맹달의 연락로를 끊었다! 일반 부대가 이번 라운드 혼란에 빠졌다.');
+    log(s,'신의·신탐의 내응 준비가 끝났다! 맹달군 일반 부대가 이번 라운드 혼란에 빠졌다.');
   }
   if(s.round<3)return;
   if(s.scenarioId==='wuzhang'&&!s.events.includes('guo-arrived')) {

@@ -125,7 +125,7 @@ test('round-two surprise isolates Meng Da once and spares commanders', () => {
   assert.equal(s.round, 2); assert.equal(s.phase, 'player'); assert.equal(s.surpriseTriggered, true);
   assert.equal(findUnit(s, 'e1')!.confused, 1); assert.equal(findUnit(s, 'mengda')!.confused, 0);
   applyScenarioEvents(s);assert.deepEqual(s.events,['mengda-isolated']);
-  assert.equal(s.logs.filter(l => l.startsWith('급습대가')).length, 1);
+  assert.equal(s.logs.filter(l => l.startsWith('신의·신탐의')).length, 1);
 });
 
 test('AI acted flags survive a save and resume without repeating the committed action', () => {

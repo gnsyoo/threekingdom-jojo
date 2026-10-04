@@ -66,7 +66,7 @@ test('a paused AI phase reloads and completes without replaying acted units', as
   await page.getByRole('button', { name: /전투 이어하기/ }).click();
   await page.waitForFunction(() => (window as any).__WEI_DEBUG__.state().phase === 'player');
   const after = await state(page); expect(after.round).toBe(2); expect(after.surpriseTriggered).toBe(true);
-  expect(after.logs.filter(l => l.startsWith('급습대가'))).toHaveLength(1);
+  expect(after.logs.filter(l => l.startsWith('신의·신탐의'))).toHaveLength(1);
 });
 
 test('legal UI actions finish a whole battle and show the saved victory result', async ({ page }) => {

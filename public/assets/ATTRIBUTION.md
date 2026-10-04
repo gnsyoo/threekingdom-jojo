@@ -24,7 +24,7 @@ Previously generated Cao Cao campaign artwork, retained as project history:
 
 `unit-motion.json` and `boss-motion.json` contain project-authored source rectangle, foot pivot, and scale metadata for the unmodified motion atlases. `ui/frame.svg` and `ui/ink-paper.svg` are project-authored decorative frame and paper illustrations. Menus, text, health bars, and deployment markers remain live interface elements.
 
-The bundled font subsets are Noto Sans KR and Noto Serif KR. They were rebuilt from the official Google Fonts variable TTFs for every Korean/Han character in the current UI (413 characters) and are self-hosted so the game does not contact a font service during play.
+The bundled font subsets are Noto Sans KR and Noto Serif KR. They were rebuilt from the official Google Fonts variable TTFs with 419 Korean/Han characters, covering every character in the current UI and are self-hosted so the game does not contact a font service during play.
 
 - Noto CJK source: https://github.com/notofonts/noto-cjk
 - Font licenses: `fonts/Sans-LICENSE.txt` and `fonts/Serif-LICENSE.txt` (SIL Open Font License 1.1)

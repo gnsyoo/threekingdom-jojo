@@ -250,7 +250,7 @@ async function runAi() {
       if (!step) advancePhase(state);
       remember(); render();
       if (step) { const u = findUnit(state, step.unitId); if (u && innerHeight < 500) scene?.centerOn(u); if (step.result) { scene?.hits(step.result.hits,step.unitId); sound('attack'); } }
-      if (!hadFire && state.surpriseTriggered) toast('맹달의 연락로를 차단했습니다. 일반 부대가 혼란에 빠졌습니다.');
+      if (!hadFire && state.surpriseTriggered) toast('신의·신탐의 내응 준비가 끝났습니다. 일반 부대가 혼란에 빠졌습니다.');
       if(state.events.some(e=>!previousEvents.has(e)))toast(state.logs.at(-1)!);
       await wait(prefs.fast ? 140 : 580);
     }
@@ -296,7 +296,7 @@ function openModal(kind: string) {
   }
   if (kind === 'result') {
     const won=state.outcome==='won',bosses=state.units.filter(u=>u.boss),bonus=bonusComplete(state),next=nextScenario(state.scenarioId);
-    body=`<span class="modal-eyebrow">${scenario.name} · 전투 종료</span><div class="result-seal ${won?'won':'lost'}">${won?'勝':'退'}</div><h2 class="result-title">${scenario.title} ${won?'승리':'패배'}</h2><p class="result-quote">${won?'“나는 적이 정한 때에 싸우지 않는다.”':actor().hp===0?'사마의가 전장에서 퇴각했습니다.':'제한 라운드 안에 지휘관을 제압하지 못했습니다.'}</p><div class="result-metrics"><div><strong>${state.round}</strong><span>소요 라운드</span></div><div><strong>${state.attacksMade}</strong><span>사마의의 공격</span></div><div><strong>${scenario.goal==='hold'?`${state.round}/${scenario.holdUntil}`:`${bosses.filter(u=>!u.hp).length}/${bosses.length}`}</strong><span>${scenario.goal==='hold'?'방어 목표 턴':'지휘관 퇴각'}</span></div></div><div class="result-objective"><span>${bonus?'✓':'◇'} ${scenario.bonus}</span><strong>${bonus?'완료':'미완료'}</strong></div><p class="modal-note">${won?scenario.victory:'위치와 회복 시점을 바꿔 다시 도전해 보세요.'}</p>${won?`<div class="result-narrative">${scenario.aftermath.map(l=>`<p><strong>${l.speaker}</strong><span>${l.line}</span></p>`).join('')}</div>`:''}`;
+    body=`<span class="modal-eyebrow">${scenario.name} · 전투 종료</span><div class="result-seal ${won?'won':'lost'}">${won?'勝':'退'}</div><h2 class="result-title">${scenario.title} ${won?'승리':'패배'}</h2><p class="result-quote">${won?'전투 목표를 달성했습니다.':actor().hp===0?'사마의가 전장에서 퇴각했습니다.':'제한 라운드 안에 지휘관을 제압하지 못했습니다.'}</p><div class="result-metrics"><div><strong>${state.round}</strong><span>소요 라운드</span></div><div><strong>${state.attacksMade}</strong><span>사마의의 공격</span></div><div><strong>${scenario.goal==='hold'?`${state.round}/${scenario.holdUntil}`:`${bosses.filter(u=>!u.hp).length}/${bosses.length}`}</strong><span>${scenario.goal==='hold'?'방어 목표 턴':'지휘관 퇴각'}</span></div></div><div class="result-objective"><span>${bonus?'✓':'◇'} ${scenario.bonus}</span><strong>${bonus?'완료':'미완료'}</strong></div><p class="modal-note">${won?scenario.victory:'위치와 회복 시점을 바꿔 다시 도전해 보세요.'}</p>${won?`<div class="result-narrative">${scenario.aftermath.map(l=>`<p><strong>${l.speaker}</strong><span>${l.line}</span></p>`).join('')}</div>`:''}`;
     footer=`<button class="secondary" data-action="title">처음 화면</button>${won?next?`<button class="primary" data-action="next-battle">${next.name} 이야기로 ${icon('chevron',18)}</button>`:'<button class="primary" data-action="scenarios">전투 선택</button>':'<button class="primary" data-action="restart">다시 출진</button>'}`;
   }
   if (!footer) footer = `<button class="primary" data-action="close-modal">${kind === 'objective' ? '전장으로' : '닫기'} ${icon('chevron', 16)}</button>`;
