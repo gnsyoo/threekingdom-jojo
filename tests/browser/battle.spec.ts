@@ -11,7 +11,7 @@ async function tile(page: Page, point: Point) {
 }
 async function start(page: Page) {
   await page.goto('/');
-  await page.getByRole('button', { name: '상용으로 출진' }).click();
+  await page.getByRole('button', { name: '첫 전투 출진' }).click();
   for(let i=0;i<5;i++) await page.getByRole('button', { name: '계속' }).click();
   await page.locator('[data-action="choice-protect"]').click();
   await page.locator('[data-action="choice-confirm"]').click();
@@ -132,7 +132,7 @@ test('touchscreen taps move the commander and a drag pans without issuing a comm
   const context = await browser.newContext({ viewport: { width: 844, height: 390 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
   const page = await context.newPage();
   await page.goto('http://127.0.0.1:5173');
-  await page.getByRole('button', { name: '상용으로 출진' }).tap();
+  await page.getByRole('button', { name: '첫 전투 출진' }).tap();
   for(let i=0;i<5;i++) await page.getByRole('button', { name: '계속' }).tap();
   await page.locator('[data-action="choice-protect"]').tap();
   await page.locator('[data-action="choice-confirm"]').tap();

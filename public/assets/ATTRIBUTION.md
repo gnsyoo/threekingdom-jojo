@@ -7,6 +7,9 @@ Current Sima Yi campaign (generated 2026-10-04):
 - `sima-portraits.png`: original Sima Yi, Sima Shi, Niu Jin (牛金), Guo Huai, Hu Zun, Meng Da, Zhuge Liang, Gongsun Yuan, in a 4×2 portrait atlas.
 - `sima-motion.png`: the same eight characters, eight poses per row: four walk and four attack, 64 new frames. The PNG remains unmodified; `sima-motion.json` describes inspected alpha bounds and centered pivots.
 - `shangyong-map.png`, `wuzhang-map.png`, `liaodong-map.png`: newly generated Shangyong mountain town, Wuzhang defensive plateau, and Xiangping siege maps. No units or interface lettering are baked into these maps.
+- `chronicle-portraits.png`: eight new original portraits (Zhang He, Ma Su, Wang Ping, Wei Yan, Sima Zhao, Cao Shuang, Jiang Wei, Li Sheng), a 1536×1024 4×2 atlas. The generated PNG remains unmodified; SVG clipping preserves each cell’s proportions.
+- `jieting-map.svg`, `xicheng-map.svg`, `qishan-map.svg`, `shangfang-map.svg`, `gaoping-map.svg`, `yangping-map.svg`: original deterministic vector terrain art authored in `scripts/build-campaign-maps.ts` from the actual tactical terrain arrays. No commercial map or image was traced or edited. Goal markers and fire are runtime layers.
+- New tactical units reuse existing class motion frames where applicable; each new historical character does not have an independent eight-pose sheet.
 - General infantry and archers retain 16 frames from `units-walk.png`/`units-attack.png`.
 
 Previously generated Cao Cao campaign artwork, retained as project history:
@@ -24,7 +27,7 @@ Previously generated Cao Cao campaign artwork, retained as project history:
 
 `unit-motion.json` and `boss-motion.json` contain project-authored source rectangle, foot pivot, and scale metadata for the unmodified motion atlases. `ui/frame.svg` and `ui/ink-paper.svg` are project-authored decorative frame and paper illustrations. Menus, text, health bars, and deployment markers remain live interface elements.
 
-The bundled font subsets are Noto Sans KR and Noto Serif KR. They were rebuilt from the official Google Fonts variable TTFs with 419 Korean/Han characters, covering every character in the current UI and are self-hosted so the game does not contact a font service during play.
+The bundled font subsets are Noto Sans KR and Noto Serif KR. They were rebuilt from the official Google Fonts variable TTFs with 520 Korean/Han characters, covering every character in the current UI and are self-hosted so the game does not contact a font service during play.
 
 - Noto CJK source: https://github.com/notofonts/noto-cjk
 - Font licenses: `fonts/Sans-LICENSE.txt` and `fonts/Serif-LICENSE.txt` (SIL Open Font License 1.1)

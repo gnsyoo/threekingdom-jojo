@@ -6,7 +6,7 @@ const state=(page:Page):Promise<BattleState>=>page.evaluate(()=>(window as any).
 async function tile(page:Page,point:Point){const p=await page.evaluate(p=>(window as any).__WEI_DEBUG__.tile(p),point);await page.mouse.click(p.x,p.y);}
 async function preparation(page:Page,id:ScenarioId){
   await page.goto('/');await page.locator('[data-action="scenarios"]').click();
-  await expect(page.locator('.scenario-card')).toHaveCount(3);
+  await expect(page.locator('.scenario-card')).toHaveCount(9);
   await page.locator(`[data-action="scenario-pick"][data-scenario-id="${id}"]`).click();
   await expect(page.locator('.story-heading')).toContainText(`${getScenario(id).name}의 군의`);
   for(let i=0;i<5;i++)await page.getByRole('button',{name:'계속',exact:true}).click();
@@ -90,7 +90,7 @@ for(const id of ['wuzhang','liaodong'] as ScenarioId[])test(`${id} legal UI acti
     await page.locator('[data-action="choice-protect"]').click();await page.locator('[data-action="choice-confirm"]').click();await depart(page);
     expect((await state(page)).scenarioId).toBe('liaodong');expect((await state(page)).units[0].hp).toBe(156);
   }else {
-    await page.locator('.modal-footer [data-action="scenarios"]').click();await expect(page.locator('[data-scenario-id="liaodong"]')).toContainText('승리 기록');
+    await page.locator('.modal-footer [data-action="next-battle"]').click();await page.locator('[data-action="title"]').click();await page.locator('[data-action="scenarios"]').click();await expect(page.locator('[data-scenario-id="liaodong"]')).toContainText('승리 기록');
   }
   expect(errors).toEqual([]);
 });

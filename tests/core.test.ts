@@ -290,3 +290,62 @@ for(const scenarioId of ['wuzhang','liaodong'] as ScenarioId[])test(`${scenarioI
   }
   assert.equal(s.outcome,'won',s.logs.join('\n'));assert.ok(s.attacksMade>0);assert.ok(parseSave(JSON.stringify(s)));
 });
+
+// Full campaign paths include only rule actions, with a save restoration after each AI action.
+for(const scenario of SCENARIOS)for(const choice of ['protect','advance'] as const)test(`${scenario.id} ${choice}: complete and restore the full legal mission for three RNG seeds`,async()=>{
+ const {playMission}=await import('./helpers/play-mission.ts');
+ for(const seed of [190,1,17]){const s=playMission(scenario.id,choice,seed);assert.equal(s.outcome,'won',`${seed}\n${s.logs.join('\n')}`);assert.ok(parseSave(JSON.stringify(s)));}
+});
+test('occupation requires a committed action and moving/undo never grants a checkpoint',()=>{
+ const s=createBattle('protect',190,'gaoping');sima(s).x=7;sima(s).y=4;
+ assert.equal(moveUnit(s,'sima',{x:7,y:3}),true);assert.deepEqual(s.objectives,[]);assert.equal(evaluateOutcome(s),'playing');assert.equal(undoMove(s),true);assert.deepEqual(s.objectives,[]);
+ moveUnit(s,'sima',{x:7,y:3});waitUnit(s,'sima');assert.deepEqual(s.objectives,['arsenal']);assert.ok(parseSave(JSON.stringify(s)));
+});
+test('Gaoping checks arsenal before bridge and saves reject reversed captures',()=>{
+ const s=createBattle('protect',190,'gaoping');sima(s).x=17;sima(s).y=8;waitUnit(s,'sima');assert.deepEqual(s.objectives,[]);
+ s.objectives=['luo-bridge'];assert.equal(parseSave(JSON.stringify(s)),null);
+});
+test('valley exit is unavailable before rain and the same fire tick never repeats',()=>{
+ const s=createBattle('protect',190,'shangfang');sima(s).x=2;sima(s).y=2;waitUnit(s,'sima');assert.equal(s.outcome,'playing');assert.deepEqual(s.objectives,[]);
+ s.round=2;s.phase='player';sima(s).x=10;sima(s).y=8;sima(s).acted=false;applyScenarioEvents(s);assert.equal(sima(s).hp,sima(s).maxHp-12);
+ s.logs=[];applyScenarioEvents(s);assert.equal(sima(s).hp,sima(s).maxHp-12);assert.ok(parseSave(JSON.stringify(s)));
+ s.round=3;applyScenarioEvents(s);assert.equal(sima(s).hp,sima(s).maxHp-24);
+ s.round=4;applyScenarioEvents(s);assert.equal(sima(s).hp,sima(s).maxHp-24);sima(s).x=2;sima(s).y=2;waitUnit(s,'sima');assert.equal(s.outcome,'won');assert.ok(parseSave(JSON.stringify(s)));
+});
+test('new mission events reject premature, missing and duplicate environmental triggers',()=>{
+ for(const id of ['jieting','xicheng','qishan','shangfang','gaoping','yangping'] as ScenarioId[]){
+  const s=createBattle('protect',190,id);s.events=[SCENARIOS.find(m=>m.id===id)!.eventIds[0]];assert.equal(parseSave(JSON.stringify(s)),null,id);
+  const later=createBattle('protect',190,id);later.round=3;assert.equal(parseSave(JSON.stringify(later)),null,id);
+ }
+});
+test('defensive waiting reduces incoming damage until the next friendly phase',async()=>{
+ const {damageFor}=await import('../src/core.ts');const s=createBattle();const e=findUnit(s,'e1')!,before=damageFor(e,sima(s));waitUnit(s,'sima');assert.ok(damageFor(e,sima(s))<before);
+ endPlayerPhase(s);s.units.filter(u=>u.team==='ally').forEach(u=>u.acted=true);advancePhase(s);s.units.filter(u=>u.team==='enemy').forEach(u=>u.acted=true);advancePhase(s);assert.equal(sima(s).guarding,false);assert.equal(damageFor(e,sima(s)),before);
+});
+test('encouragement supports nearby allies and leaves distant allies unchanged',()=>{
+ const s=createBattle();findUnit(s,'shi')!.x=5;findUnit(s,'shi')!.y=8;findUnit(s,'guo')!.x=2;findUnit(s,'guo')!.y=2;
+ encourage(s);assert.equal(findUnit(s,'shi')!.buff,2);assert.equal(findUnit(s,'guo')!.buff,0);assert.ok(parseSave(JSON.stringify(s)));
+});
+test('ally order holds formation, does not cost the player action and rejects AI-phase changes',async()=>{
+ const {setTactic}=await import('../src/core.ts');const s=createBattle(),a=findUnit(s,'shi')!,before={x:a.x,y:a.y};assert.equal(setTactic(s,'hold'),true);assert.equal(sima(s).acted,false);
+ endPlayerPhase(s);assert.equal(setTactic(s,'guard'),false);aiStep(s);assert.deepEqual({x:a.x,y:a.y},before);assert.ok(parseSave(JSON.stringify(s)));
+});
+test('earned support funds permit one stat-validated equipment upgrade and survive preparation saving',()=>{
+ const p=new Preparation('protect','gaoping',2),before=p.battle.units[0].defense;
+ assert.equal(p.gold,300);assert.equal(p.upgrade('bulwark'),true);assert.equal(p.gold,0);assert.equal(p.battle.units[0].defense,before+4);assert.equal(p.upgrade('assault'),false);assert.ok(parseSave(JSON.stringify(p.battle)));
+ const bad=structuredClone(p.battle);bad.units[0].defense++;assert.equal(parseSave(JSON.stringify(bad)),null);
+});
+test('legacy Sima Yi battle saves restore with safe defaults for new command features',()=>{
+ const s:any=createBattle();delete s.objectives;delete s.tactic;delete s.loadout;
+ const restored=parseSave(JSON.stringify(s))!;assert.ok(restored);assert.deepEqual(restored.objectives,[]);assert.equal(restored.tactic,'advance');assert.equal(restored.loadout,'standard');
+});
+test('story cursor, purchases and deployment can resume without replacing the existing battle save',async()=>{
+ const {saveJourney,loadJourney,clearJourney,recordVictory,loadRecords}=await import('../src/storage.ts');const oldStorage=globalThis.localStorage,data=new Map<string,string>();
+ Object.defineProperty(globalThis,'localStorage',{configurable:true,value:{getItem:(k:string)=>data.get(k)??null,setItem:(k:string,v:string)=>data.set(k,v),removeItem:(k:string)=>data.delete(k)}});
+ try{
+  const b=createBattle();saveBattle(b);const p=new Preparation('advance','gaoping',2);p.buyPotion();p.deploy({x:2,y:9});
+  assert.equal(saveJourney({stage:'preparation',scenarioId:'gaoping',index:5,choice:'advance',preparation:{battle:p.battle,gold:p.gold,selectedId:'zhao'}}),true);
+  assert.equal(loadJourney()!.preparation!.gold,200);assert.equal(loadJourney()!.preparation!.battle.units[0].x,2);assert.equal(loadBattle().state!.scenarioId,'shangyong');clearJourney();assert.equal(loadJourney(),null);
+  const {playMission}=await import('./helpers/play-mission.ts');const won=playMission('xicheng');recordVictory(won);recordVictory(won);assert.deepEqual(loadCompleted(),['xicheng']);assert.equal(loadRecords().xicheng!.stars,3);
+ }finally{Object.defineProperty(globalThis,'localStorage',{configurable:true,value:oldStorage});}
+});

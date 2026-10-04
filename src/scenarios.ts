@@ -1,13 +1,18 @@
 import type { Point, Terrain, Unit } from './core.ts';
+import {board,deployment,unit,weiArmy,line} from './scenario-kit.ts';
+import {EXTRA_SCENARIOS} from './extra-scenarios.ts';
 
-export type ScenarioId = 'shangyong' | 'wuzhang' | 'liaodong';
+export type ScenarioId = 'shangyong' | 'jieting' | 'xicheng' | 'qishan' | 'shangfang' | 'wuzhang' | 'liaodong' | 'gaoping' | 'yangping';
 export type Choice = 'protect' | 'advance';
 export interface StoryLine { speaker: string; portrait: string; line: string; note: string }
 export interface Scenario {
   id: ScenarioId; chapter: number; year: number; name: string; title: string;
   cols: number; rows: number; turnLimit: number; background: string;
   location: string; enemyName: string; enemySeal: string;
-  objective: string; goal: 'defeat' | 'hold'; holdUntil?: number;
+  objective: string; goal: 'defeat' | 'hold' | 'occupy' | 'escape'; holdUntil?: number;
+  checkpoints?: (Point & {id:string;name:string})[]; orderedCheckpoints?:boolean; minimumRound?:number;
+  fireTiles?:Point[]; stationary?:string[]; commanderName?:string; parTurns?:number; weather?:string;
+  bonusRule?:'health'|'allies'|'fast'|'noCombat';
   bonus: string; bonusNote: string; victory: string; aftermath: StoryLine[];
   briefing: string; eventLabel: string; eventRound: number;
   protectLabel: string; protectNote: string; protectDescription: string;
@@ -15,25 +20,6 @@ export interface Scenario {
   deployment: Point[]; landmark: Point & { name: string };
   story: StoryLine[]; eventIds: string[]; units: (choice: Choice) => Unit[];
 }
-function board(cols:number,rows:number,at:(p:Point)=>Terrain):Terrain[][] {
-  return Array.from({length:rows},(_,y)=>Array.from({length:cols},(_,x)=>at({x,y})));
-}
-function deployment(x:number,y:number):Point[] {
-  return Array.from({length:9},(_,i)=>({x:x+i%3,y:y+Math.floor(i/3)}));
-}
-function unit(id:string,name:string,team:Unit['team'],sprite:number,x:number,y:number,values:Partial<Unit>={}):Unit {
-  return {id,name,team,sprite,x,y,role:'보병',hp:64,maxHp:64,mp:0,maxMp:0,attack:23,defense:16,agility:16,movement:4,range:[1,1],level:3,moved:false,acted:false,buff:0,confused:0,boss:false,...values};
-}
-function weiArmy(level:number,choice:Choice,positions:Point[],liaodong=false):Unit[] {
-  const step=level-3;
-  return [
-    unit('sima','사마의','player',0,positions[0].x,positions[0].y,{role:'도독',level,hp:132+12*step,maxHp:132+12*step,mp:18+3*step,maxMp:18+3*step,attack:39+4*step,defense:27+3*step,agility:30,movement:5,buff:choice==='advance'?1:0}),
-    unit('shi','사마사','ally',1,positions[1].x,positions[1].y,{role:'선봉',level,hp:105+10*step,maxHp:105+10*step,attack:29+4*step,defense:22+3*step,movement:5}),
-    unit('niu','우금','ally',2,positions[2].x,positions[2].y,{role:'기병',level,hp:118+12*step,maxHp:118+12*step,attack:33+4*step,defense:24+3*step,movement:6,agility:23}),
-    unit(liaodong?'hu':'guo',liaodong?'호준':'곽회','ally',liaodong?8:3,positions[3].x,positions[3].y,{role:liaodong?'보병':'궁병',range:liaodong?[1,1]:[2,3],level,hp:112+12*step,maxHp:112+12*step,attack:32+4*step,defense:22+3*step,agility:19}),
-  ];
-}
-const line=(speaker:string,portrait:string,text:string,note=''):StoryLine=>({speaker,portrait,line:text,note});
 
 export const SCENARIOS:Scenario[]=[
   {
@@ -136,7 +122,7 @@ export const SCENARIOS:Scenario[]=[
       line("사마의","sima","맹달을 칠 때는 우리 군량이 적어 서둘렀다. 지금은 적이 굶주리고 우리는 군량이 있다. 성을 억지로 공격할 까닭이 없다.","요수·수산·양평의 공방을 한 전장에서 진행합니다."),
       line("사마의","sima","비가 그치면 토산을 쌓고 땅굴을 파며 운제를 세워 성을 공격하라. 공손연이 빠져나갈 길에도 군사를 두어라.","포위전 보급: 회복약 3개. 돌파 강화: 회복약 2개와 첫 턴 공격 +10%."),
     ],
-    aftermath:[line("삼국연의 · 제106회","sima","비연은 수산에서 하후패에게 죽었다. 성을 빠져나온 공손연 부자는 사마의와 두 아들, 호준 등의 포위에 붙잡혀 처형됐다. 사마의는 군사들에게 상을 내리고 낙양으로 돌아갔다."),line("사마의 · 마지막 독백","sima","요동의 싸움은 끝났다. 낙양으로 돌아가서도 때를 살피겠다.")],
+    aftermath:[line("삼국연의 · 제106회","sima","비연은 수산에서 하후패에게 죽었다. 성을 빠져나온 공손연 부자는 사마의와 두 아들, 호준 등의 포위에 붙잡혀 처형됐다. 사마의는 군사들에게 상을 내리고 낙양으로 돌아갔다."),line('삼국연의 · 제106회','sima','낙양에서는 병든 조예가 사마의의 귀환을 기다리고 있었다. 사마의는 조상을 비롯한 신하들과 함께 어린 조방을 보필하라는 부탁을 받았다.')],
     units:choice=>[
       ...weiArmy(5,choice,[{x:5,y:9},{x:5,y:7},{x:7,y:7},{x:6,y:6}],true),
       unit('gongsun','공손연','enemy',9,19,7,{role:'요동 지휘관',level:7,hp:190,maxHp:190,attack:37,defense:31,agility:27,movement:5,boss:true}),
@@ -146,6 +132,10 @@ export const SCENARIOS:Scenario[]=[
     ],
   },
 ];
+SCENARIOS.push(...EXTRA_SCENARIOS);
+const chronology:ScenarioId[]=['shangyong','jieting','xicheng','qishan','shangfang','wuzhang','liaodong','gaoping','yangping'];
+SCENARIOS.sort((a,b)=>chronology.indexOf(a.id)-chronology.indexOf(b.id));
+SCENARIOS.forEach((s,i)=>{s.chapter=i+1;s.parTurns??=s.goal==='hold'?s.holdUntil:s.turnLimit-3;});
 export const isScenarioId=(id:unknown):id is ScenarioId=>SCENARIOS.some(s=>s.id===id);
 export const getScenario=(id:ScenarioId='shangyong'):Scenario=>SCENARIOS.find(s=>s.id===id)!;
 export const nextScenario=(id:ScenarioId):Scenario|undefined=>SCENARIOS[SCENARIOS.findIndex(s=>s.id===id)+1];

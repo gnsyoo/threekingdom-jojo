@@ -19,6 +19,5 @@ for(const [id,source,event,ending] of [
   await page.reload();await page.getByRole('button',{name:/전투 결과 보기/}).click();
   await expect(page.locator('.result-narrative')).toContainText(ending);
   await expect(page.locator('.result-narrative')).toContainText('삼국연의');
-  if(id==='liaodong')await expect(page.locator('.result-narrative')).toContainText('사마의 · 마지막 독백');
-  else await expect(page.locator('.result-narrative')).not.toContainText('독백');
+  await expect(page.locator('.result-narrative')).not.toContainText('독백');
 });

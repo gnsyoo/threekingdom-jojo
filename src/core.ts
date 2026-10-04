@@ -12,11 +12,11 @@ export interface Unit extends Point {
   hp: number; maxHp: number; mp: number; maxMp: number;
   attack: number; defense: number; agility: number; movement: number;
   range: [number, number]; level: number; moved: boolean; acted: boolean;
-  buff: number; confused: number; boss: boolean;
+  buff: number; confused: number; boss: boolean; guarding?:boolean;
 }
 export interface BattleState {
   version: 2; scenarioId: ScenarioId; events: string[]; units: Unit[]; round: number; phase: Phase; outcome: Outcome;
-  seed: number; potions: number; choice: 'protect' | 'advance';
+  seed: number; potions: number; objectives: string[]; tactic:'advance'|'guard'|'hold'; loadout:'standard'|'assault'|'bulwark'; choice: 'protect' | 'advance';
   pendingMove: { unitId: string; from: Point; to: Point } | null;
   surpriseTriggered: boolean; villageVisited: boolean; attacksMade: number;
   logs: string[]; startedAt: number; savedAt: number;
@@ -48,7 +48,7 @@ export function createBattle(choice: 'protect' | 'advance' = 'protect', seed = 2
   const scenario=getScenario(scenarioId);
   return {
     version:2,scenarioId,events:[],round:1,phase:'player',outcome:'playing',seed,choice,
-    potions:choice==='protect'?3:2,pendingMove:null,surpriseTriggered:false,
+    objectives:[],tactic:'advance',loadout:'standard',potions:choice==='protect'?3:2,pendingMove:null,surpriseTriggered:false,
     villageVisited:false,attacksMade:0,startedAt:Date.now(),savedAt:Date.now(),
     logs:[`${scenario.title} 시작. ${scenario.objective}.`,choice==='protect'?`${scenario.protectNote}을 준비했다. 회복약 3개를 보유한다.`:'선봉을 정비했다. 첫 라운드 공격력이 강화된다.'],
     units:scenario.units(choice),
@@ -125,7 +125,7 @@ export function damageFor(a: Unit, b: Unit, scenarioId: ScenarioId = 'shangyong'
   const power = a.attack * (a.buff > 0 ? 1.1 : 1);
   let advantage = 1;
   if ((a.role === '궁병' && b.role === '기병') || (a.role === '기병' && b.role === '보병') || (a.role === '보병' && b.role === '궁병')) advantage = 1.2;
-  return Math.max(1, Math.round(Math.max(1, power - b.defense * .55) * advantage * (1 - TERRAIN_INFO[terrainAt(b,scenarioId)].defense)));
+  return Math.max(1, Math.round(Math.max(1, power - b.defense * .55) * advantage * (1 - TERRAIN_INFO[terrainAt(b,scenarioId)].defense) * (b.guarding ? .75 : 1)));
 }
 export function previewAttack(a: Unit, b: Unit, scenarioId: ScenarioId = 'shangyong') {
   const d = distance(a, b);
@@ -139,6 +139,12 @@ function finishAction(s: BattleState, u: Unit) {
   u.acted = true; u.moved = true; s.pendingMove = null;
   if (u.team === 'player' && s.scenarioId === 'shangyong' && terrainAt(u,s.scenarioId) === 'village' && !s.villageVisited) {
     s.villageVisited = true; log(s, '사마의가 민가의 안전을 확인했다. 보조 목표 달성.');
+  }
+  const scenario=getScenario(s.scenarioId);
+  if(u.team==='player' && s.round >= (scenario.minimumRound??1)){
+    const available=scenario.orderedCheckpoints?scenario.checkpoints?.filter(p=>!s.objectives.includes(p.id)).slice(0,1):scenario.checkpoints;
+    const reached=available?.find(p=>key(p)===key(u));
+    if(reached&&!s.objectives.includes(reached.id)){s.objectives.push(reached.id);log(s,`${reached.name} 확보. ${s.objectives.length}/${scenario.checkpoints!.length}`);}
   }
   evaluateOutcome(s);
 }
@@ -169,7 +175,7 @@ export function attackUnit(s: BattleState, attackerId: string, targetId: string)
 
 export function waitUnit(s: BattleState, id: string): boolean {
   const u = findUnit(s, id); if (!u || !controlled(s, u)) return false;
-  log(s, `${u.name}이 진형을 유지한다.`); finishAction(s, u); return true;
+  u.guarding=true;log(s, `${u.name}이 진형을 유지한다. 다음 차례까지 받는 피해 -25%.`); finishAction(s, u); return true;
 }
 export function potionTargets(s:BattleState):Unit[] {
   const sima=findUnit(s,'sima');
@@ -179,20 +185,29 @@ export function usePotion(s: BattleState, targetId='sima'): boolean {
   const u = findUnit(s, 'sima'), target=potionTargets(s).find(t=>t.id===targetId);
   if (!u || !controlled(s, u) || s.potions <= 0 || !target) return false;
   const before=target.hp;target.hp=Math.min(target.maxHp,target.hp+55);s.potions--;
-  log(s, `사마의가 회복약을 사용했다. ${target.name} HP +${target.hp-before}`);finishAction(s,u);return true;
+  log(s, `${u.name}가 회복약을 사용했다. ${target.name} HP +${target.hp-before}`);finishAction(s,u);return true;
 }
 export function encourage(s: BattleState): boolean {
   const u = findUnit(s, 'sima');
   if (!u || !controlled(s, u) || u.mp < 6 || u.buff > 0) return false;
-  u.mp -= 6; u.buff = 2;
-  log(s, '사마의의 격려! 2라운드 동안 공격력이 10% 상승한다.'); finishAction(s, u); return true;
+  u.mp -= 6;u.buff=2;for(const ally of s.units.filter(a=>a.team==='ally'&&alive(a)&&distance(a,u)<=3))ally.buff=2;
+  log(s, `${u.name}의 격려! 자신과 3칸 이내 우군의 공격력이 2라운드 동안 10% 상승한다.`); finishAction(s, u); return true;
+}
+export function goalReached(s:BattleState):boolean {
+  const scenario=getScenario(s.scenarioId);
+  if(scenario.goal==='hold')return s.round>=scenario.holdUntil!&&s.phase==='player';
+  if(scenario.goal==='escape'||scenario.goal==='occupy')return s.round>=(scenario.minimumRound??1)&&scenario.checkpoints!.every(p=>s.objectives.includes(p.id));
+  return s.units.filter(u=>u.boss).every(u=>u.hp===0);
+}
+export function setTactic(s:BattleState,tactic:BattleState['tactic']):boolean {
+  if(s.outcome!=='playing'||s.phase!=='player'||!['advance','guard','hold'].includes(tactic))return false;
+  if(s.tactic===tactic)return true;
+  s.tactic=tactic;log(s,`우군 방침: ${tactic==='advance'?'진격':tactic==='guard'?'호위':'진영 유지'}`);return true;
 }
 export function evaluateOutcome(s: BattleState): Outcome {
   if (s.outcome !== 'playing') return s.outcome;
   if (!findUnit(s, 'sima') || findUnit(s, 'sima')!.hp <= 0) s.outcome = 'lost';
-  else if (getScenario(s.scenarioId).goal==='hold') {
-    if(s.round>=getScenario(s.scenarioId).holdUntil! && s.phase==='player')s.outcome='won';
-  } else if (s.units.filter(u => u.boss).every(u => u.hp === 0)) s.outcome = 'won';
+  else if(goalReached(s))s.outcome='won';
   if (s.outcome !== 'playing') { s.pendingMove = null; log(s, `${getScenario(s.scenarioId).title} ${s.outcome==='won'?'승리!':'패배.'}`); }
   return s.outcome;
 }
@@ -200,7 +215,7 @@ export function evaluateOutcome(s: BattleState): Outcome {
 function beginPhase(s: BattleState, phase: Phase) {
   s.phase = phase;
   for (const u of s.units.filter(u => u.team === phase && alive(u))) {
-    u.acted = false; u.moved = false;
+    u.acted = false; u.moved = false; u.guarding=false;
     if (terrainAt(u,s.scenarioId) === 'village') u.hp = Math.min(u.maxHp, u.hp + Math.ceil(u.maxHp * .1));
   }
   log(s, phase === 'player' ? `제${s.round}라운드 · 아군 차례` : phase === 'ally' ? '우군이 진격한다.' : `${getScenario(s.scenarioId).enemyName}이 움직인다.`);
@@ -214,7 +229,7 @@ export function advancePhase(s: BattleState): boolean {
   if (s.outcome !== 'playing' || s.phase === 'player') return false;
   if (s.units.some(u => u.team === s.phase && alive(u) && !u.acted)) return false;
   if (s.phase === 'ally') { beginPhase(s, 'enemy'); return true; }
-  if (s.round >= getScenario(s.scenarioId).turnLimit) { s.outcome = 'lost'; log(s, '제한 라운드가 끝났다. 적 지휘관을 제압하지 못했다.'); return true; }
+  if (s.round >= getScenario(s.scenarioId).turnLimit) { s.outcome = 'lost'; log(s, '제한 라운드가 끝났다. 임무 목표를 달성하지 못했다.'); return true; }
   s.round++;
   for (const u of s.units) u.buff = Math.max(0, u.buff - 1);
   beginPhase(s, 'player');
@@ -224,6 +239,11 @@ export function advancePhase(s: BattleState): boolean {
 }
 
 export function bonusComplete(s:BattleState):boolean {
+  const rule=getScenario(s.scenarioId).bonusRule,u=findUnit(s,'sima')!;
+  if(rule==='health')return u.hp>=u.maxHp*.5;
+  if(rule==='allies')return s.units.filter(u=>u.team==='ally').every(alive);
+  if(rule==='fast')return s.round<=(getScenario(s.scenarioId).parTurns??6);
+  if(rule==='noCombat')return s.attacksMade===0;
   if(s.scenarioId==='wuzhang')return !!findUnit(s,'niu')?.hp;
   if(s.scenarioId==='liaodong')return s.units.filter(u=>['shi','niu','hu'].includes(u.id)&&alive(u)).length>=2;
   return s.villageVisited;
@@ -234,6 +254,21 @@ export function applyScenarioEvents(s:BattleState):void {
     s.surpriseTriggered=true;s.events.push('mengda-isolated');
     for(const u of s.units.filter(u=>u.team==='enemy'&&!u.boss&&alive(u)&&u.x<15))u.confused=1;
     log(s,'신의·신탐의 내응 준비가 끝났다! 맹달군 일반 부대가 이번 라운드 혼란에 빠졌다.');
+  }
+  const trigger=(id:string,round:number,message:string,effect=()=>{})=>{if(s.round>=round&&!s.events.includes(id)){s.events.push(id);effect();log(s,message);}};
+  if(s.scenarioId==='jieting')trigger('water-cut',3,'산 위 촉군의 물이 끊겼다. 일반 부대가 혼란에 빠졌다.',()=>{for(const u of s.units.filter(u=>u.team==='enemy'&&!u.boss&&alive(u)))u.confused=1;});
+  if(s.scenarioId==='xicheng')trigger('qin-heard',2,'열린 성문에서 거문고 소리가 들린다. 회군로로 전열을 돌리라.');
+  if(s.scenarioId==='qishan')trigger('pursuit-warning',3,'촉군의 움직임이 달라졌다. 험한 길의 추격을 경계하라.');
+  if(s.scenarioId==='gaoping')trigger('capital-arrows',2,'조상부의 화살이 길목을 위협한다. 무고 확보 뒤 부교로 우회하라.');
+  if(s.scenarioId==='yangping')trigger('crossbows-fired',2,'양평관의 연노가 발사됐다! 북쪽 길의 부대가 HP 15 피해를 입었다.',()=>{for(const u of s.units.filter(u=>u.team!=='enemy'&&alive(u)&&u.x>=3&&u.x<=9&&u.y<=6))u.hp=Math.max(0,u.hp-15);});
+  if(s.scenarioId==='shangfang'){
+    trigger('fire-started',2,'상방곡의 화공이 시작됐다! 표시된 불길에서 벗어나라.');
+    trigger('rain-arrived',4,'큰비가 내려 불이 꺼졌다. 골짜기 출구가 열렸다!');
+    // A round marker makes environmental damage safe across save/reload and repeated event evaluation.
+    if(s.round>=2&&s.round<4&&!s.events.includes(`fire-tick-${s.round}`)){
+      for(const u of s.units.filter(u=>alive(u)&&getScenario(s.scenarioId).fireTiles!.some(p=>key(p)===key(u))))u.hp=Math.max(0,u.hp-12);
+      s.events.push(`fire-tick-${s.round}`);log(s,`상방곡 화공 · ${s.round}턴`);
+    }
   }
   if(s.round<3)return;
   if(s.scenarioId==='wuzhang'&&!s.events.includes('guo-arrived')) {
@@ -254,16 +289,17 @@ export function aiStep(s: BattleState): { unitId: string; from: Point; result: A
   const from = { x: u.x, y: u.y };
   if (u.confused > 0) { u.confused--; log(s, `${u.name}은 혼란으로 움직이지 못했다.`); finishAction(s, u); return { unitId: u.id, from, result: null }; }
   const enemies = s.units.filter(e => alive(e) && hostile(u, e));
-  if (u.id === 'gongsun' && s.round < 3 || u.id === 'zhuge' || u.id === 'niu' && s.scenarioId==='wuzhang' && u.hp < u.maxHp * .7) {
+  if (u.id === 'gongsun' && s.round < 3 || u.id === 'zhuge' || getScenario(s.scenarioId).stationary?.includes(u.id) || u.id === 'niu' && s.scenarioId==='wuzhang' && u.hp < u.maxHp * .7) {
     const target=enemies.find(e=>canAttack(s,u,e));
     const result=target?attackUnit(s,u.id,target.id):null;
     if(!result)waitUnit(s,u.id);
     return {unitId:u.id,from,result};
   }
+  if(u.team==='ally'&&s.tactic==='hold'){const target=enemies.find(e=>canAttack(s,u,e));const result=target?attackUnit(s,u.id,target.id):null;if(!result)waitUnit(s,u.id);return {unitId:u.id,from,result};}
   let targets = enemies.filter(e => canAttack(s, u, e));
   if (!targets.length) {
     const options = reachable(s, u);
-    const score = (p: Point) => Math.min(...enemies.map(e => {
+    const score = (p: Point) => u.team==='ally'&&s.tactic==='guard'?Math.max(0,distance(p,findUnit(s,'sima')!)-1):Math.min(...enemies.map(e => {
       const d = distance(p, e);
       return d < u.range[0] ? (u.range[0] - d) * 2 : Math.max(0, d - u.range[1]);
     }));
@@ -284,11 +320,18 @@ export function parseSave(raw: string): BattleState | null {
     if (!s || s.version !== 2 || !['player', 'ally', 'enemy'].includes(s.phase) || !['playing', 'won', 'lost'].includes(s.outcome)) return null;
     if (!isScenarioId(s.scenarioId)) return null;
     const scenario=getScenario(s.scenarioId);
+    s.objectives??=[];s.tactic??='advance';s.loadout??='standard';
+    if(!['standard','assault','bulwark'].includes(s.loadout))return null;
+    if(!Array.isArray(s.objectives)||new Set(s.objectives).size!==s.objectives.length||s.objectives.some(id=>!scenario.checkpoints?.some(p=>p.id===id))||!['advance','guard','hold'].includes(s.tactic))return null;
     if (!Array.isArray(s.events) || s.events.some(e=>!scenario.eventIds.includes(e)) || new Set(s.events).size!==s.events.length) return null;
     if (s.scenarioId!=='shangyong' && (s.surpriseTriggered || s.villageVisited)) return null;
     if (s.events.length && s.round < scenario.eventRound) return null;
     if(s.scenarioId==='shangyong' && (s.surpriseTriggered!==s.events.includes('mengda-isolated') || s.surpriseTriggered!==(s.round>=2)))return null;
     if (s.scenarioId==='liaodong' && (s.round>=3)!==s.events.includes('xiangping-counterattack')) return null;
+    const eventRounds:Record<string,number>={'water-cut':3,'qin-heard':2,'pursuit-warning':3,'capital-arrows':2,'crossbows-fired':2,'fire-started':2,'fire-tick-2':2,'fire-tick-3':3,'rain-arrived':4};
+    for(const id of scenario.eventIds.filter(id=>id in eventRounds))if((s.round>=eventRounds[id])!==s.events.includes(id))return null;
+    if(s.objectives.length&&scenario.minimumRound&&s.round<scenario.minimumRound)return null;
+    if(scenario.orderedCheckpoints&&s.objectives.some((id,i)=>id!==scenario.checkpoints![i].id))return null;
     if (!Number.isInteger(s.round) || s.round < 1 || s.round > scenario.turnLimit || !Number.isInteger(s.seed) || s.seed < 0 || s.seed > 4294967295) return null;
     if (!['protect', 'advance'].includes(s.choice) || !Number.isInteger(s.potions) || s.potions < 0 || s.potions > 3) return null;
     if (![s.startedAt, s.savedAt].every(n => Number.isFinite(n) && n >= 0) || !Number.isInteger(s.attacksMade) || s.attacksMade < 0) return null;
@@ -302,9 +345,10 @@ export function parseSave(raw: string): BattleState | null {
       const expected = blueprint.units.find(e => e.id === u.id);
       if (!expected || ids.has(u.id) || u.team !== expected.team || u.sprite !== expected.sprite || u.name !== expected.name || u.role !== expected.role || !inBounds(u,s.scenarioId)) return null;
       ids.add(u.id);
-      for (const field of ['maxHp', 'maxMp', 'attack', 'defense', 'agility', 'movement', 'level', 'boss'] as const) if (u[field] !== expected[field]) return null;
+      for (const field of ['maxHp', 'maxMp', 'attack', 'defense', 'agility', 'movement', 'level', 'boss'] as const) if (u[field] !== (field==='attack'&&u.id==='sima'&&s.loadout==='assault'?expected.attack+4:field==='defense'&&u.id==='sima'&&s.loadout==='bulwark'?expected.defense+4:expected[field])) return null;
       if (!Array.isArray(u.range) || u.range[0] !== expected.range[0] || u.range[1] !== expected.range[1]) return null;
       if (![u.hp, u.mp, u.buff, u.confused].every(Number.isInteger) || u.hp < 0 || u.hp > u.maxHp || u.mp < 0 || u.mp > u.maxMp || u.buff < 0 || u.buff > 2 || u.confused < 0 || u.confused > 1) return null;
+      if(u.guarding!==undefined&&typeof u.guarding!=='boolean')return null;
       if (typeof u.moved !== 'boolean' || typeof u.acted !== 'boolean') return null;
       if (u.hp > 0) { if (!Number.isFinite(TERRAIN_INFO[terrainAt(u,s.scenarioId)].cost) || occupied.has(key(u))) return null; occupied.add(key(u)); }
     }
@@ -318,10 +362,10 @@ export function parseSave(raw: string): BattleState | null {
       if (!reachable(check, actor).some(p => key(p) === key(m.to))) return null;
     }
     const commanderAlive=findUnit(s,'sima')!.hp>0;
-    const goalReached=scenario.goal==='hold'?s.round>=scenario.holdUntil!&&s.phase==='player':s.units.filter(u=>u.boss).every(u=>u.hp===0);
-    if(s.outcome==='playing'&&(!commanderAlive||goalReached))return null;
-    if(s.outcome==='won'&&(!commanderAlive||!goalReached))return null;
-    if(s.outcome==='lost'&&commanderAlive&&(scenario.goal==='hold'||s.round<scenario.turnLimit))return null;
+    const reached=goalReached(s);
+    if(s.outcome==='playing'&&(!commanderAlive||reached))return null;
+    if(s.outcome==='won'&&(!commanderAlive||!reached))return null;
+    if(s.outcome==='lost'&&commanderAlive&&s.round<scenario.turnLimit)return null;
     return s;
   } catch { return null; }
 }

@@ -30,6 +30,7 @@ export class BattleScene extends Phaser.Scene {
   private labelLayer!: HTMLDivElement;
   private labels = new Map<string, HTMLDivElement>();
   private landmarkLabel!: HTMLDivElement;
+  private checkpointLabels=new Map<string,HTMLDivElement>();
 
   private readonly scenario:Scenario;
   constructor(scenarioId:ScenarioId='shangyong') { super('battle');this.scenario=getScenario(scenarioId); }
@@ -62,6 +63,7 @@ export class BattleScene extends Phaser.Scene {
     this.labelLayer=document.createElement('div');this.labelLayer.className='battle-labels';this.labelLayer.setAttribute('aria-hidden','true');
     this.game.canvas.parentElement!.append(this.labelLayer);
     this.landmarkLabel=document.createElement('div');this.landmarkLabel.className='battle-label landmark-label';this.landmarkLabel.textContent=landmark.name;this.labelLayer.append(this.landmarkLabel);
+    for(const p of this.scenario.checkpoints??[]){const label=document.createElement('div');label.className='battle-label checkpoint-label';label.textContent=p.name;this.labelLayer.append(label);this.checkpointLabels.set(p.id,label);}
     this.events.once(Phaser.Scenes.Events.SHUTDOWN,()=>{this.labelLayer.remove();this.labels.clear();this.ready=false;});
     this.overlay = this.add.graphics().setDepth(2);
     this.ready = true; this.configureCamera(true);
@@ -135,10 +137,17 @@ export class BattleScene extends Phaser.Scene {
     if (mode === 'move') {
       for (const p of reachable) { g.fillStyle(0x438fc4, .25).fillRect(p.x * TILE + 1, p.y * TILE + 1, TILE - 2, TILE - 2); g.lineStyle(1, 0x8fceef, .65).strokeRect(p.x * TILE + 1, p.y * TILE + 1, TILE - 2, TILE - 2); }
     }
+    for(const [index,p] of (this.scenario.checkpoints??[]).entries()){
+      const done=state.objectives.includes(p.id),color=done?0x81c5a6:0xebcc85;
+      g.fillStyle(color,.12).fillRect(p.x*TILE+3,p.y*TILE+3,TILE-6,TILE-6);
+      g.lineStyle(3,color,.9).strokeRoundedRect(p.x*TILE+4,p.y*TILE+4,TILE-8,TILE-8,6);
+      const label=this.checkpointLabels.get(p.id)!;label.textContent=`${done?'✓':index+1} ${p.name}`;
+    }
+    if(state.scenarioId==='shangfang'&&state.events.includes('fire-started')&&!state.events.includes('rain-arrived'))for(const p of this.scenario.fireTiles??[]){g.fillStyle(0xd4693e,.27).fillRect(p.x*TILE+1,p.y*TILE+1,TILE-2,TILE-2);g.lineStyle(2,0xf2b866,.7).strokeRect(p.x*TILE+2,p.y*TILE+2,TILE-4,TILE-4);}
     if(data.threat){
       const danger=new Set<string>();
-      for(const boss of state.units.filter(u=>u.boss&&u.hp>0)){
-        const positions=(boss.id==='gongsun'&&state.round<3)||boss.id==='zhuge'?[boss]:movementRange(state,boss);
+      for(const boss of state.units.filter(u=>u.team==='enemy'&&u.hp>0)){
+        const positions=(boss.id==='gongsun'&&state.round<3)||boss.id==='zhuge'||this.scenario.stationary?.includes(boss.id)?[boss]:movementRange(state,boss);
         for(const position of positions)for(let dy=-boss.range[1];dy<=boss.range[1];dy++)for(let dx=-boss.range[1];dx<=boss.range[1];dx++){
           const point={x:position.x+dx,y:position.y+dy},distance=Math.abs(dx)+Math.abs(dy);
           if(inBounds(point,state.scenarioId)&&distance>=boss.range[0]&&distance<=boss.range[1])danger.add(key(point));
@@ -229,7 +238,8 @@ export class BattleScene extends Phaser.Scene {
       label.style.opacity=String(node.alpha);
       place(label,node.x,node.y+12,u.hp>0&&(c.zoom*scale*TILE>=32||u.id===this.current.selectedId||!!u.boss));
     }
-    const landmark=this.scenario.landmark;place(this.landmarkLabel,(landmark.x+.5)*TILE,(landmark.y+.5)*TILE-30);
+    for(const p of this.scenario.checkpoints??[])place(this.checkpointLabels.get(p.id)!, (p.x+.5)*TILE,(p.y+.5)*TILE-30);
+    const landmark=this.scenario.landmark;this.landmarkLabel.hidden=!!this.scenario.checkpoints; if(!this.scenario.checkpoints)place(this.landmarkLabel,(landmark.x+.5)*TILE,(landmark.y+.5)*TILE-30);
   }
   private idle(u: Unit, sprite: Phaser.GameObjects.Sprite) {
     if(!sprite.active) return;

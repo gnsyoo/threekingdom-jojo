@@ -1,4 +1,6 @@
-# UI·UX와 그래픽 개선 검수
+# 이전 UI·UX와 그래픽 개선 검수
+
+이 문서는 조조편·세 원정 시절의 개발 이력이다. 현재 아홉 임무와 서막·종막의 검증은 [전체 연대기 50차 QA](CHRONICLE-QA.md)를 기준으로 한다.
 
 [게임 실행](https://gnsyoo.github.io/threekingdom-jojo/) · [사마의전 시나리오와 최신 검수](SIMA_CAMPAIGN.md)
 

@@ -1,3 +1,4 @@
+import type {Unit} from './core.ts';
 export const assetUrl = (file: string) => `${import.meta.env.BASE_URL}assets/${file}`;
 // A nested SVG clips one atlas cell before fitting it into a UI slot. Neither
 // the cell's aspect ratio nor neighbouring portraits change with the slot size.
@@ -5,13 +6,18 @@ function atlasImage(file: string, sourceWidth: number, sourceHeight: number, rec
   const [x, y, width, height] = rect;
   return `<svg class="${className}" viewBox="0 0 ${width} ${height}" preserveAspectRatio="${fit}" role="img" aria-label="${label}"><svg width="${width}" height="${height}" viewBox="${x} ${y} ${width} ${height}" overflow="hidden"><image href="${assetUrl(file)}" width="${sourceWidth}" height="${sourceHeight}" /></svg></svg>`;
 }
-export function portraitHtml(id: string, name: string, className = ''): string {
+export function portraitHtml(id: string, name: string, className = '', fit = 'xMidYMin slice'): string {
+  const extra:Record<string,number>={he:0,masu:1,wping:2,weiyan:3,zhao:4,caoshuang:5,jiangwei:6,lisheng:7};
+  if(id in extra){const n=extra[id];return atlasImage('chronicle-portraits.png',1536,1024,[n%4*384,Math.floor(n/4)*512,384,512],name,`painted-portrait portrait-atlas portrait-${id} ${className}`,fit);}
   const cells:Record<string,number>={sima:0,shi:1,niu:2,guo:3,hu:4,mengda:5,zhuge:6,gongsun:7};
   const cell=cells[id]??2,width=1774,height=887,w=width/4,h=height/2;
-  return atlasImage('sima-portraits.png',width,height,[cell%4*w,Math.floor(cell/4)*h,w,h],name,`painted-portrait portrait-atlas portrait-${id} ${className}`);
+  return atlasImage('sima-portraits.png',width,height,[cell%4*w,Math.floor(cell/4)*h,w,h],name,`painted-portrait portrait-atlas portrait-${id} ${className}`,fit);
 }
 
 export function unitSpriteHtml(sprite:number,className='') {
+  // The general infantry/archer preview matches its actual battlefield frame.
+  const regular:Record<number,number[]>={4:[52,811,180,181],5:[58,995,174,174]};
+  if(regular[sprite])return atlasImage('units-walk.png',1024,1536,regular[sprite],'',`unit-miniature ${className}`,'xMidYMid meet');
   const row:Record<number,number>={0:0,1:1,2:2,3:3,8:4,6:5,7:6,9:7};
   const size=1254,cell=size/8,rows=[0,167,326,483,637,796,947,1100,1254],r=row[sprite]??2;
   return atlasImage('sima-motion.png',size,size,[0,rows[r],cell,rows[r+1]-rows[r]],'',`unit-miniature ${className}`,'xMidYMid meet');
@@ -22,6 +28,7 @@ export function formatGold(amount: number) {
 }
 
 const art: Record<string, string> = {
+  map: '<path d="m5 13 17-7 17 7 16-7v42l-16 7-17-7-17 7Z" fill="#d7c49a" stroke="#66543a" stroke-width="2"/><path d="M22 6v42M39 13v42" stroke="#967e56" stroke-width="2"/><path d="m10 34 9-9 10 8 16-13 5 3" fill="none" stroke="#476d63" stroke-width="3"/><circle cx="29" cy="33" r="3" fill="#a67043"/>',
   fan: '<g stroke="#bda16a" stroke-width="1.2" fill="#233b4a"><path d="M29 44 7 22Q1 9 15 8l16 32Z"/><path d="M29 44 17 12Q17 2 29 4l4 35Z"/><path d="M29 44 30 9Q35-1 43 8L35 41Z"/><path d="M29 44 43 15Q52 8 55 20L36 44Z"/></g><path d="M29 42 34 56" stroke="#e3c483" stroke-width="5"/><path d="m12 15 17 26M24 10l7 29M38 10l-5 29M49 20 35 40" fill="none" stroke="#728c96"/>',
   bow: '<path d="M17 5Q52 30 17 55" fill="none" stroke="#c29b5b" stroke-width="5"/><path d="M17 5 25 30 17 55M8 30h42" fill="none" stroke="#e8d7ae" stroke-width="1.7"/><path d="m47 25 8 5-8 5Z" fill="#b4c5cd"/><path d="m8 25 6 5-6 5" fill="none" stroke="#ae7952" stroke-width="2"/>',
   spear: '<path d="M11 54 44 15" stroke="#bd9b62" stroke-width="5"/><path d="m40 18 3-12 12-4-4 12-9 7Z" fill="#ced9d7" stroke="#6b8087" stroke-width="1.5"/><path d="m40 19-10 9 8-2-2 8 11-12" fill="#4a8495"/>',
@@ -41,3 +48,9 @@ export const itemArt = (name: string, label: string) => {
   const rects:Record<string,number[]>={sword:[0,145,418,500],armor:[418,190,418,474],horse:[844,148,410,509],potion:[836,770,418,390]};
   return rects[name] ? atlasImage('items.png',1254,1254,rects[name],label,`item-art item-${name}`,'xMidYMid meet') : artIcon(name,64);
 };
+
+export function unitPortrait(u:Unit,className=''){
+  const regular:Record<string,string>={vanguard:'hu',cavalry:'niu',archer:'guo'};
+  const key=u.id==='sima'&&u.name==='사마사'?'shi':regular[u.id]??u.id;
+  return portraitHtml(key,u.name,className);
+}
