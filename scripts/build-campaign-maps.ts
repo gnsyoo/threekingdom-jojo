@@ -1,8 +1,10 @@
-/** Original deterministic vector fields: terrain art and collision use the same board. */
-import {writeFileSync} from 'node:fs';
+/** Art direction references, never the shipped illustrated battlefield textures. */
+import {mkdirSync,writeFileSync} from 'node:fs';
 import {SCENARIOS} from '../src/scenarios.ts';
 const size=64;
-for(const s of SCENARIOS.filter(s=>s.background.endsWith('.svg'))){
+const output=new URL('../qa-artifacts/map-layouts/',import.meta.url);
+mkdirSync(output,{recursive:true});
+for(const s of SCENARIOS){
  const parts=[`<svg xmlns="http://www.w3.org/2000/svg" width="${s.cols*size}" height="${s.rows*size}" viewBox="0 0 ${s.cols*size} ${s.rows*size}"><defs><linearGradient id="grass" x2="1" y2="1"><stop stop-color="#5f7560"/><stop offset="1" stop-color="#72806a"/></linearGradient><linearGradient id="river" x2="0" y2="1"><stop stop-color="#3d7f91"/><stop offset="1" stop-color="#245e72"/></linearGradient><linearGradient id="rock" x2="1" y2="1"><stop stop-color="#aaa17f"/><stop offset="1" stop-color="#716e5f"/></linearGradient><pattern id="stipple" width="32" height="32" patternUnits="userSpaceOnUse"><path d="M3 8h3m12 15h3M9 28h2" stroke="#d2d0a0" stroke-opacity=".2" stroke-width="1.3"/><path d="m22 4 2 3m-14 9 2-2" stroke="#234438" stroke-opacity=".24" stroke-width="1.2"/></pattern></defs><rect width="100%" height="100%" fill="url(#grass)"/><rect width="100%" height="100%" fill="url(#stipple)"/>`];
  for(let y=0;y<s.rows;y++)for(let x=0;x<s.cols;x++){
   const t=s.terrain[y][x];let art='';
@@ -16,5 +18,5 @@ for(const s of SCENARIOS.filter(s=>s.background.endsWith('.svg'))){
  }
  // Camp flags along the starting area give each map an identifiable gathering point.
  for(const p of [s.deployment[0],s.deployment[2]])parts.push(`<g transform="translate(${p.x*64+8} ${p.y*64+4})"><path d="M0 2v22" stroke="#cebb87" stroke-width="2"/><path d="M1 2h13l-4 6 4 6H1Z" fill="#365d73" stroke="#b4c3a9" stroke-width="1"/></g>`);
- parts.push('</svg>');writeFileSync(new URL(`../public/assets/${s.background}`,import.meta.url),parts.join(''));console.log(s.background);
+ parts.push('</svg>');writeFileSync(new URL(`${s.id}.svg`,output),parts.join(''));console.log(`${s.id}.svg`);
 }

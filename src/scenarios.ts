@@ -23,7 +23,7 @@ export interface Scenario {
 
 export const SCENARIOS:Scenario[]=[
   {
-    id:'shangyong',chapter:1,year:228,name:'상용',title:'상용 급습전',cols:18,rows:12,turnLimit:12,background:'shangyong-map.png',
+    id:'shangyong',chapter:1,year:228,name:'상용',title:'상용 급습전',cols:18,rows:12,turnLimit:12,background:'shangyong-field.webp',
     location:'상용 · 신성 성밖',enemyName:'맹달군',enemySeal:'孟',goal:'defeat',objective:'맹달을 제압하라',
     bonus:'민가의 안전 확인',bonusNote:'사마의가 왼쪽 민가로 이동한 뒤 행동을 마치세요.',
     victory:"맹달은 신탐에게 죽고, 이보와 등현이 성문을 열었다. 사마의는 신성을 수습한 뒤 장안에서 조예를 만나 촉군을 막을 임무를 받았다.",
@@ -59,7 +59,7 @@ export const SCENARIOS:Scenario[]=[
     ],
   },
   {
-    id:'wuzhang',chapter:2,year:234,name:'오장원',title:'오장원 대치전',cols:22,rows:14,turnLimit:8,background:'wuzhang-map.png',
+    id:'wuzhang',chapter:2,year:234,name:'오장원',title:'오장원 대치전',cols:22,rows:14,turnLimit:8,background:'wuzhang-field.webp',
     location:'위수 북쪽 방어선',enemyName:'촉군',enemySeal:'蜀',goal:'hold',holdUntil:8,objective:'사마의를 지키며 8턴까지 버텨라',
     bonus:'우금 생존',bonusNote:'부상당한 우금을 생존시키세요. 사마의가 인접하면 회복약으로 지원할 수 있습니다.',
     victory:"방어 목표를 달성했다. 삼국연의에서는 제갈량이 세상을 떠난 뒤 촉군이 퇴각한다. 추격에 나선 사마의는 제갈량의 목상을 보고 복병을 의심해 물러난다.",
@@ -97,7 +97,7 @@ export const SCENARIOS:Scenario[]=[
     },
   },
   {
-    id:'liaodong',chapter:3,year:238,name:'요동',title:'요동 포위전',cols:24,rows:14,turnLimit:18,background:'liaodong-map.png',
+    id:'liaodong',chapter:3,year:238,name:'요동',title:'요동 포위전',cols:24,rows:14,turnLimit:18,background:'liaodong-field.webp',
     location:'양평성 서쪽',enemyName:'공손연군',enemySeal:'燕',goal:'defeat',objective:'공손연과 비연을 제압하라',
     bonus:'우군 2명 이상 생존',bonusNote:'사마사·우금·호준 중 2명 이상을 생존시켜 승리하세요.',
     victory:"요수에서 양평으로 방향을 바꾸어 적을 움직이고, 장마가 끝난 뒤 성을 공격했다. 사마의는 공손연 부자를 사로잡아 처형하고, 호준은 양평에 들어갔다.",

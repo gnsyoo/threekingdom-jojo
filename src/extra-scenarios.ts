@@ -14,7 +14,7 @@ const health={bonus:'지휘관 체력 절반 이상',bonusNote:'목표 달성 �
 const supplies={protectLabel:'전열과 보급을 지킨다',protectNote:'안정된 보급',protectDescription:'회복약을 확보하고 숲과 진영을 이용합니다.',advanceLabel:'빠른 진군을 택한다',advanceDescription:'첫 라운드 공격을 강화해 길목을 엽니다.'};
 export const EXTRA_SCENARIOS:Scenario[]=[
  {
-  id:'jieting',chapter:2,year:228,name:'가정',title:'가정 차단전',cols:18,rows:12,turnLimit:12,background:'jieting-map.svg',location:'가정 · 산 아래 보급로',enemyName:'촉군',enemySeal:'蜀',goal:'occupy',objective:'물길과 가정 대로를 확보하라',
+  id:'jieting',chapter:2,year:228,name:'가정',title:'가정 차단전',cols:18,rows:12,turnLimit:12,background:'jieting-field.webp',location:'가정 · 산 아래 보급로',enemyName:'촉군',enemySeal:'蜀',goal:'occupy',objective:'물길과 가정 대로를 확보하라',
   checkpoints:[{id:'waterway',x:8,y:7,name:'물길'},{id:'mainroad',x:13,y:4,name:'가정 대로'}],landmark:{x:8,y:7,name:'물길'},deployment:deployment(3,8),
   ...health,...supplies,parTurns:8,eventLabel:'산 위의 갈증',eventRound:3,eventIds:['water-cut'],
   briefing:'두 금빛 거점에서 행동을 마치세요. 마속 처치는 필수가 아닙니다. 3턴에는 산 위 촉군의 혼란이 발생합니다.',
@@ -32,7 +32,7 @@ export const EXTRA_SCENARIOS:Scenario[]=[
   units:choice=>[...army(3,choice,[{x:4,y:9},{x:3,y:7},{x:5,y:7},{x:4,y:6}],true),unit('masu','마속','enemy',6,13,2,{role:'촉군 참군',hp:150,maxHp:150,attack:26,defense:22,boss:true}),...troops('촉군',[{x:9,y:7},{x:12,y:5},{x:11,y:3}],[{x:14,y:5}])],
  },
  {
-  id:'xicheng',chapter:3,year:228,name:'서성',title:'서성 회군전',cols:18,rows:12,turnLimit:7,background:'xicheng-map.svg',location:'서성 · 성문 앞',enemyName:'서성 수비대',enemySeal:'蜀',goal:'escape',objective:'성문을 피해 북서쪽 회군로로 빠져나가라',
+  id:'xicheng',chapter:3,year:228,name:'서성',title:'서성 회군전',cols:18,rows:12,turnLimit:7,background:'xicheng-field.webp',location:'서성 · 성문 앞',enemyName:'서성 수비대',enemySeal:'蜀',goal:'escape',objective:'성문을 피해 북서쪽 회군로로 빠져나가라',
   checkpoints:[{id:'return-road',x:2,y:2,name:'회군로'}],landmark:{x:2,y:2,name:'회군로'},deployment:deployment(5,8),stationary:['zhuge','b1','b2'],
   bonus:'교전 없이 회군',bonusNote:'직접 공격하지 않고 회군로에서 행동을 마치세요.',bonusRule:'noCombat',...supplies,parTurns:4,eventLabel:'성루의 거문고',eventRound:2,eventIds:['qin-heard'],
   briefing:'회군로는 금빛 칸입니다. 성문에 남은 수비대는 자리를 지킵니다. 공격 대신 진로와 우군 방침을 선택하세요.',
@@ -50,7 +50,7 @@ export const EXTRA_SCENARIOS:Scenario[]=[
   units:choice=>[...army(3,choice,[{x:6,y:9},{x:5,y:7},{x:7,y:7},{x:6,y:6}]),unit('zhuge','제갈량','enemy',7,15,7,{role:'촉군 승상',hp:180,maxHp:180,attack:28,defense:26,range:[2,3],boss:true}),...troops('서성',[],[{x:13,y:5},{x:13,y:9}])],
  },
  {
-  id:'qishan',chapter:4,year:231,name:'기산',title:'기산 방어전',cols:20,rows:12,turnLimit:6,holdUntil:6,background:'qishan-map.svg',location:'기산 · 위군 방어선',enemyName:'촉군',enemySeal:'蜀',goal:'hold',objective:'사마의를 지키며 6턴까지 버텨라',
+  id:'qishan',chapter:4,year:231,name:'기산',title:'기산 방어전',cols:20,rows:12,turnLimit:6,holdUntil:6,background:'qishan-field.webp',location:'기산 · 위군 방어선',enemyName:'촉군',enemySeal:'蜀',goal:'hold',objective:'사마의를 지키며 6턴까지 버텨라',
   ...health,...supplies,parTurns:6,landmark:{x:5,y:6,name:'위군 진영'},deployment:deployment(3,8),eventLabel:'추격 경계',eventRound:3,eventIds:['pursuit-warning'],
   briefing:'숲과 진영에서 방어하고 우군을 지휘하세요. 6턴 시작까지 생존하면 방어 목표를 달성합니다. 적 지휘관 처치는 필수가 아닙니다.',
   victory:'촉군은 군량 문제와 이엄의 서신 때문에 물러났다. 추격을 고집한 장합은 목문도 매복에 걸려 죽었고, 사마의는 이를 자신의 허물이라 탄식했다.',
@@ -67,7 +67,7 @@ export const EXTRA_SCENARIOS:Scenario[]=[
   units:choice=>[...army(4,choice,[{x:4,y:9},{x:5,y:6},{x:3,y:6},{x:6,y:7}],true),unit('weiyan','위연','enemy',4,15,6,{role:'촉군 선봉',hp:150,maxHp:150,attack:29,defense:24,boss:true}),...troops('촉군',[{x:11,y:6},{x:14,y:4},{x:14,y:8}],[{x:16,y:5},{x:16,y:8}],4)],
  },
  {
-  id:'shangfang',chapter:5,year:234,name:'상방곡',title:'상방곡 탈출전',cols:18,rows:12,turnLimit:8,minimumRound:4,background:'shangfang-map.svg',location:'상방곡 · 좁은 골짜기',enemyName:'촉군 매복대',enemySeal:'蜀',goal:'escape',objective:'4턴의 비를 기다린 뒤 북서쪽 출구로 탈출하라',
+  id:'shangfang',chapter:5,year:234,name:'상방곡',title:'상방곡 탈출전',cols:18,rows:12,turnLimit:8,minimumRound:4,background:'shangfang-field.webp',location:'상방곡 · 좁은 골짜기',enemyName:'촉군 매복대',enemySeal:'蜀',goal:'escape',objective:'4턴의 비를 기다린 뒤 북서쪽 출구로 탈출하라',
   ...health,...supplies,parTurns:6,weather:'비가 오기 전',landmark:{x:2,y:2,name:'골짜기 출구'},checkpoints:[{id:'valley-exit',x:2,y:2,name:'골짜기 출구'}],deployment:deployment(9,8),
   fireTiles:Array.from({length:42},(_,i)=>({x:8+i%6,y:3+Math.floor(i/6)})),eventLabel:'화공과 소나기',eventRound:2,eventIds:['fire-started','fire-tick-2','fire-tick-3','rain-arrived'],
   briefing:'2·3턴에 불길 안의 부대가 HP 12 피해를 받습니다. 4턴의 비가 불을 끄면 출구에서 행동을 마쳐 탈출하세요. 격파보다 생존이 우선입니다.',
@@ -85,7 +85,7 @@ export const EXTRA_SCENARIOS:Scenario[]=[
   units:choice=>{const a=army(4,choice,[{x:10,y:9},{x:11,y:7},{x:9,y:7},{x:10,y:6}]);Object.assign(a[2],{id:'zhao',name:'사마소',sprite:2,role:'호위'});return [...a,...troops('촉군',[{x:13,y:4},{x:14,y:7}],[{x:15,y:5}],4)];},
  },
  {
-  id:'gaoping',chapter:8,year:249,name:'고평릉',title:'고평릉 정변',cols:20,rows:12,turnLimit:9,background:'gaoping-map.svg',location:'낙양 · 무고와 낙수 부교',enemyName:'조상부 수비대',enemySeal:'曹',goal:'occupy',objective:'무고를 먼저 확보하고 낙수 부교에 도달하라',
+  id:'gaoping',chapter:8,year:249,name:'고평릉',title:'고평릉 정변',cols:20,rows:12,turnLimit:9,background:'gaoping-field.webp',location:'낙양 · 무고와 낙수 부교',enemyName:'조상부 수비대',enemySeal:'曹',goal:'occupy',objective:'무고를 먼저 확보하고 낙수 부교에 도달하라',
   bonus:'불필요한 교전 없이 접관',bonusNote:'직접 공격하지 않고 두 거점을 순서대로 확보하세요.',bonusRule:'noCombat',...supplies,parTurns:6,checkpoints:[{id:'arsenal',x:7,y:3,name:'무고'},{id:'luo-bridge',x:17,y:8,name:'낙수 부교'}],orderedCheckpoints:true,landmark:{x:7,y:3,name:'무고'},deployment:deployment(2,8),stationary:['b1','b2'],eventLabel:'조상부의 화살',eventRound:2,eventIds:['capital-arrows'],
   briefing:'무고와 부교에서 순서대로 행동을 마칩니다. 조상부의 궁병은 자리를 지킵니다. 우회와 방어 대기를 활용하세요. 조상을 쓰러뜨리는 전투가 아닙니다.',
   victory:'사마의는 무고를 장악하고 낙수의 부교를 지켰다. 조상은 허창으로 가자는 환범의 권고를 버리고 병권을 내놓았다. 이후 조상 일족은 처형됐다.',
@@ -102,7 +102,7 @@ export const EXTRA_SCENARIOS:Scenario[]=[
   units:choice=>{const a=army(6,choice,[{x:3,y:9},{x:3,y:7},{x:4,y:7},{x:3,y:6}]);Object.assign(a[2],{id:'zhao',name:'사마소',role:'호위'});return [...a,...troops('조상부',[],[{x:10,y:5},{x:10,y:7}],4)];},
  },
  {
-  id:'yangping',chapter:9,year:249,name:'양평관',title:'양평관 회군전',cols:20,rows:12,turnLimit:9,commanderName:'사마사',background:'yangping-map.svg',location:'양평관 · 연노 매복길',enemyName:'촉군',enemySeal:'蜀',goal:'escape',objective:'사마사를 살려 동남쪽 회군로로 빠져나가라',
+  id:'yangping',chapter:9,year:249,name:'양평관',title:'양평관 회군전',cols:20,rows:12,turnLimit:9,commanderName:'사마사',background:'yangping-field.webp',location:'양평관 · 연노 매복길',enemyName:'촉군',enemySeal:'蜀',goal:'escape',objective:'사마사를 살려 동남쪽 회군로로 빠져나가라',
   ...health,...supplies,parTurns:6,checkpoints:[{id:'safe-return',x:17,y:9,name:'낙양 회군로'}],landmark:{x:17,y:9,name:'낙양 회군로'},deployment:deployment(3,2),stationary:['jiangwei'],eventLabel:'연노 매복',eventRound:2,eventIds:['crossbows-fired'],
   briefing:'사마의의 명령을 받은 사마사를 직접 지휘합니다. 2턴에 북쪽 길의 연노 매복이 HP 15 피해를 줍니다. 강유 처치는 필수가 아닙니다.',
   victory:'사마사는 강유를 뒤쫓다가 양평관의 연노 매복을 만나 달아났다. 곡산에서는 구안이 위에 항복했고, 사마사는 낙양으로 돌아갔다.',

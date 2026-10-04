@@ -53,7 +53,7 @@ npm run build:pages
 
 개발 서버는 5173을 모든 인터페이스에 바인딩한다. 비밀 키·외부 API·DB는 필요하지 않다. Pages 빌드는 `/threekingdom-jojo/`를 사용한다. `main` 푸시 시 Actions가 규칙 검사·타입 검사·빌드를 수행하고 `dist/`를 배포한다. 저장소 Pages 소스는 GitHub Actions다. `npm run preview -- --port 4173 --strictPort`로 빌드 결과를 확인할 수 있다.
 
-새 원정 지도 여섯 장은 `node scripts/build-campaign-maps.ts`로 재생성한다. 폰트 추가 문자는 `scripts/build-font-subsets.py --source-dir <sans.ttf와 serif.ttf가 있는 폴더>`로 반영한다(Python/fonttools 필요). 일반 빌드는 커밋된 리소스를 사용한다.
+아홉 전투는 원정별로 새로 제작한 `*-field.webp` 일러스트를 사용한다. `node scripts/build-campaign-maps.ts`는 실제 지형 배열의 아트 제작용 SVG 배치도를 `qa-artifacts/map-layouts/`에 만들며, 배포 아트를 덮어쓰지 않는다. [전장 아트 제작·검수 기록](docs/prototype/BATTLE-ART.md)에 원본·용량·검수 내용을 기록한다. 폰트 추가 문자는 `scripts/build-font-subsets.py --source-dir <sans.ttf와 serif.ttf가 있는 폴더>`로 반영한다(Python/fonttools 필요). 일반 빌드는 커밋된 리소스를 사용한다.
 
 ## 구조
 
