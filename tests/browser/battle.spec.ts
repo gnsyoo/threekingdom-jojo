@@ -11,7 +11,7 @@ async function tile(page: Page, point: Point) {
 }
 async function start(page: Page) {
   await page.goto('/');
-  await page.getByRole('button', { name: '첫 전투 출진' }).click();
+  await page.locator('[data-action="scenarios"]').click();await page.locator('[data-scenario-id="shangyong"]').click();
   for(let i=0;i<5;i++) await page.getByRole('button', { name: '계속' }).click();
   await page.locator('[data-action="choice-protect"]').click();
   await page.locator('[data-action="choice-confirm"]').click();
@@ -132,7 +132,7 @@ test('touchscreen taps move the commander and a drag pans without issuing a comm
   const context = await browser.newContext({ viewport: { width: 844, height: 390 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
   const page = await context.newPage();
   await page.goto('http://127.0.0.1:5173');
-  await page.getByRole('button', { name: '첫 전투 출진' }).tap();
+  await page.locator('[data-action="scenarios"]').tap();await page.locator('[data-scenario-id="shangyong"]').tap();
   for(let i=0;i<5;i++) await page.getByRole('button', { name: '계속' }).tap();
   await page.locator('[data-action="choice-protect"]').tap();
   await page.locator('[data-action="choice-confirm"]').tap();
@@ -156,7 +156,7 @@ test('touchscreen taps move the commander and a drag pans without issuing a comm
 });
 
 test('concept preparation menus preserve purchases and confirmed deployment into battle',async({page})=>{
-  await page.goto('/');await page.locator('[data-action="new"]').click();
+  await page.goto('/');await page.locator('[data-action="scenarios"]').click();await page.locator('[data-scenario-id="shangyong"]').click();
   for(let i=0;i<5;i++) await page.getByRole('button',{name:'계속',exact:true}).click();
   await page.locator('[data-action="choice-advance"]').click();await page.locator('[data-action="choice-confirm"]').click();
   const columns=await page.locator('.prep-columns > *').evaluateAll(nodes=>nodes.map(n=>n.getBoundingClientRect().x));
@@ -180,7 +180,7 @@ test('concept preparation menus preserve purchases and confirmed deployment into
 });
 
 test('dialogue automatic playback stops at the choice and records the council',async({page})=>{
-  await page.goto('/');await page.locator('[data-action="new"]').click();await page.clock.install();
+  await page.goto('/');await page.locator('[data-action="scenarios"]').click();await page.locator('[data-scenario-id="shangyong"]').click();await page.clock.install();
   await page.locator('[data-action="story-auto"]').click();await page.clock.runFor(36000);
   await expect(page.locator('[data-action="choice-confirm"]')).toBeDisabled();
   await expect(page.locator('[data-action="story-auto"]')).toHaveAttribute('aria-pressed','false');

@@ -1,12 +1,16 @@
 import type { Point, Terrain, Unit } from './core.ts';
 import {board,deployment,unit,weiArmy,line} from './scenario-kit.ts';
 import {EXTRA_SCENARIOS} from './extra-scenarios.ts';
+import {buildEpisodes,CAMPAIGN_ARCS,type StageId,type ArcId} from './campaign-stages.ts';
 
-export type ScenarioId = 'shangyong' | 'jieting' | 'xicheng' | 'qishan' | 'shangfang' | 'wuzhang' | 'liaodong' | 'gaoping' | 'yangping';
+export type ScenarioId = 'shangyong' | 'jieting' | 'xicheng' | 'qishan' | 'shangfang' | 'wuzhang' | 'liaodong' | 'gaoping' | 'yangping' | StageId;
 export type Choice = 'protect' | 'advance';
 export interface StoryLine { speaker: string; portrait: string; line: string; note: string }
 export interface Scenario {
   id: ScenarioId; chapter: number; year: number; name: string; title: string;
+  arcId?:ArcId; episode?:number;
+  movementLabel?: '회군'|'호위'|'행군';
+  scriptedEvents?:{id:string;round:number;message:string;kind:'notice'|'disrupt'|'rally'}[];
   cols: number; rows: number; turnLimit: number; background: string;
   location: string; enemyName: string; enemySeal: string;
   objective: string; goal: 'defeat' | 'hold' | 'occupy' | 'escape'; holdUntil?: number;
@@ -132,10 +136,17 @@ export const SCENARIOS:Scenario[]=[
     ],
   },
 ];
-SCENARIOS.push(...EXTRA_SCENARIOS);
-const chronology:ScenarioId[]=['shangyong','jieting','xicheng','qishan','shangfang','wuzhang','liaodong','gaoping','yangping'];
+SCENARIOS.push(...EXTRA_SCENARIOS,...buildEpisodes());
+const chronology=CAMPAIGN_ARCS.flatMap(arc=>[
+ ...SCENARIOS.filter(s=>s.id.startsWith(`${arc.id}-`)).sort((a,b)=>a.id.localeCompare(b.id)).map(s=>s.id),arc.id,
+]);
 SCENARIOS.sort((a,b)=>chronology.indexOf(a.id)-chronology.indexOf(b.id));
-SCENARIOS.forEach((s,i)=>{s.chapter=i+1;s.parTurns??=s.goal==='hold'?s.holdUntil:s.turnLimit-3;});
+SCENARIOS.forEach((s,i)=>{
+ s.chapter=i+1;s.parTurns??=s.goal==='hold'?s.holdUntil:s.turnLimit-3;
+ s.arcId??=s.id as ArcId;s.episode??=CAMPAIGN_ARCS.find(a=>a.id===s.arcId)!.count;
+});
+export const FIRST_SCENARIO_ID=SCENARIOS[0].id;
+export {CAMPAIGN_ARCS};
 export const isScenarioId=(id:unknown):id is ScenarioId=>SCENARIOS.some(s=>s.id===id);
 export const getScenario=(id:ScenarioId='shangyong'):Scenario=>SCENARIOS.find(s=>s.id===id)!;
 export const nextScenario=(id:ScenarioId):Scenario|undefined=>SCENARIOS[SCENARIOS.findIndex(s=>s.id===id)+1];

@@ -256,6 +256,10 @@ export function applyScenarioEvents(s:BattleState):void {
     log(s,'신의·신탐의 내응 준비가 끝났다! 맹달군 일반 부대가 이번 라운드 혼란에 빠졌다.');
   }
   const trigger=(id:string,round:number,message:string,effect=()=>{})=>{if(s.round>=round&&!s.events.includes(id)){s.events.push(id);effect();log(s,message);}};
+  for(const event of getScenario(s.scenarioId).scriptedEvents??[])trigger(event.id,event.round,event.message,()=>{
+    if(event.kind==='disrupt')for(const u of s.units.filter(u=>u.team==='enemy'&&!u.boss&&alive(u)))u.confused=1;
+    if(event.kind==='rally')for(const u of s.units.filter(u=>u.team!=='enemy'&&alive(u)))u.hp=Math.min(u.maxHp,u.hp+12);
+  });
   if(s.scenarioId==='jieting')trigger('water-cut',3,'산 위 촉군의 물이 끊겼다. 일반 부대가 혼란에 빠졌다.',()=>{for(const u of s.units.filter(u=>u.team==='enemy'&&!u.boss&&alive(u)))u.confused=1;});
   if(s.scenarioId==='xicheng')trigger('qin-heard',2,'열린 성문에서 거문고 소리가 들린다. 회군로로 전열을 돌리라.');
   if(s.scenarioId==='qishan')trigger('pursuit-warning',3,'촉군의 움직임이 달라졌다. 험한 길의 추격을 경계하라.');
@@ -330,6 +334,7 @@ export function parseSave(raw: string): BattleState | null {
     if (s.scenarioId==='liaodong' && (s.round>=3)!==s.events.includes('xiangping-counterattack')) return null;
     const eventRounds:Record<string,number>={'water-cut':3,'qin-heard':2,'pursuit-warning':3,'capital-arrows':2,'crossbows-fired':2,'fire-started':2,'fire-tick-2':2,'fire-tick-3':3,'rain-arrived':4};
     for(const id of scenario.eventIds.filter(id=>id in eventRounds))if((s.round>=eventRounds[id])!==s.events.includes(id))return null;
+    for(const event of scenario.scriptedEvents??[])if((s.round>=event.round)!==s.events.includes(event.id))return null;
     if(s.objectives.length&&scenario.minimumRound&&s.round<scenario.minimumRound)return null;
     if(scenario.orderedCheckpoints&&s.objectives.some((id,i)=>id!==scenario.checkpoints![i].id))return null;
     if (!Number.isInteger(s.round) || s.round < 1 || s.round > scenario.turnLimit || !Number.isInteger(s.seed) || s.seed < 0 || s.seed > 4294967295) return null;

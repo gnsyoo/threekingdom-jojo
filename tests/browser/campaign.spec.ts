@@ -1,15 +1,15 @@
 import {test,expect,type Page} from '@playwright/test';
 import {reachable,distance,canAttack,type BattleState,type Point} from '../../src/core.ts';
-import {getScenario,type ScenarioId} from '../../src/scenarios.ts';
+import {SCENARIOS,getScenario,nextScenario,type ScenarioId} from '../../src/scenarios.ts';
 
 const state=(page:Page):Promise<BattleState>=>page.evaluate(()=>(window as any).__WEI_DEBUG__.state());
 async function tile(page:Page,point:Point){const p=await page.evaluate(p=>(window as any).__WEI_DEBUG__.tile(p),point);await page.mouse.click(p.x,p.y);}
 async function preparation(page:Page,id:ScenarioId){
   await page.goto('/');await page.locator('[data-action="scenarios"]').click();
-  await expect(page.locator('.scenario-card')).toHaveCount(9);
+  await expect(page.locator('.scenario-card')).toHaveCount(SCENARIOS.length);
   await page.locator(`[data-action="scenario-pick"][data-scenario-id="${id}"]`).click();
   await expect(page.locator('.story-heading')).toContainText(`${getScenario(id).name}의 군의`);
-  for(let i=0;i<5;i++)await page.getByRole('button',{name:'계속',exact:true}).click();
+  for(let i=0;i<getScenario(id).story.length-1;i++)await page.getByRole('button',{name:'계속',exact:true}).click();
   await page.locator('[data-action="choice-protect"]').click();await page.locator('[data-action="choice-confirm"]').click();
 }
 async function depart(page:Page){await page.locator('[data-action="depart"]').click();await page.waitForFunction(()=>(window as any).__WEI_DEBUG__?.ready());}
@@ -84,11 +84,11 @@ for(const id of ['wuzhang','liaodong'] as ScenarioId[])test(`${id} legal UI acti
   expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('simayi-chronicle.campaign.v2')??'[]'))).toContain(id);
   await page.reload();await page.getByRole('button',{name:/전투 결과 보기/}).click();await expect(page.getByRole('heading',{name:`${getScenario(id).title} 승리`})).toBeVisible();
   if(id==='wuzhang'){
-    await page.locator('[data-action="next-battle"]').click();await expect(page.locator('.story-heading')).toContainText('요동');
+    const next=nextScenario(id)!;await page.locator('[data-action="next-battle"]').click();await expect(page.locator('.story-heading')).toContainText(next.name);
     expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('simayi-chronicle.battle.v2')!).scenarioId)).toBe('wuzhang');
-    for(let i=0;i<5;i++)await page.getByRole('button',{name:'계속',exact:true}).click();
+    for(let i=0;i<next.story.length-1;i++)await page.getByRole('button',{name:'계속',exact:true}).click();
     await page.locator('[data-action="choice-protect"]').click();await page.locator('[data-action="choice-confirm"]').click();await depart(page);
-    expect((await state(page)).scenarioId).toBe('liaodong');expect((await state(page)).units[0].hp).toBe(156);
+    expect((await state(page)).scenarioId).toBe(next.id);expect((await state(page)).units[0].hp).toBe(next.units('protect')[0].hp);
   }else {
     await page.locator('.modal-footer [data-action="next-battle"]').click();await page.locator('[data-action="title"]').click();await page.locator('[data-action="scenarios"]').click();await expect(page.locator('[data-scenario-id="liaodong"]')).toContainText('승리 기록');
   }

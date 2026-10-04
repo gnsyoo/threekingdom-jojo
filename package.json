@@ -9,7 +9,7 @@
     "build": "tsc --noEmit && vite build",
     "build:pages": "npm run build -- --base=/threekingdom-jojo/",
     "preview": "vite preview --host 0.0.0.0",
-    "test": "node --test tests/core.test.ts",
+    "test": "node --test tests/*.test.ts",
     "test:e2e": "playwright test"
   },
   "dependencies": { "phaser": "3.90.0" },

@@ -1,10 +1,10 @@
-import type {StoryLine} from './scenarios.ts';
+import {SCENARIOS,type StoryLine} from './scenarios.ts';
 const scene=(speaker:string,portrait:string,line:string,note:string):StoryLine=>({speaker,portrait,line,note});
 export const INTRO:StoryLine[]=[
  scene('삼국연의 · 제78회','sima','220년, 조조는 병상에서 사마의를 비롯한 신하들에게 조비를 보필하라고 부탁했다. 사마의의 길은 조씨 정권의 안에서 이어졌다.','序 · 위나라의 신하 / 원전 사건을 한국어로 요약'),
  scene('삼국연의 · 제91회','sima','226년, 조비도 마지막 부탁을 남겼다. 사마의는 조예를 보필하고 옹주와 양주의 군사를 맡았다.','226년 · 또 한 번의 고명'),
  scene('삼국연의 · 제91회','masu','제갈량과 마속은 사마의가 반역을 꾀한다는 소문을 퍼뜨렸다. 의심을 받은 사마의는 벼슬에서 물러났지만 위나라가 위기에 처하자 다시 불려 나왔다.','의심과 복귀 · 승리와 실패를 함께 기록한다'),
- scene('삼국연의 · 제94회','sima','228년, 맹달의 반란 소식이 도착했다. 사마의는 허락을 기다리는 시간을 버리고 빠른 행군을 택했다. 이제 첫 원정이 시작된다.','9개 전투·전술 임무 · 급습 / 확보 / 방어 / 회군'),
+ scene('삼국연의 · 제94회','sima','228년, 맹달의 반란 소식이 도착했다. 사마의는 허락을 기다리는 시간을 버리고 빠른 행군을 택했다. 성밖의 접근로를 살피는 첫 전투가 시작된다.','50개 전투·전술 임무 · 급습 / 확보 / 방어 / 회군'),
 ];
 export const ENDING:StoryLine[]=[
  scene('삼국연의 · 제108회','shi','양평관에서 돌아온 사마사는 낙양에 머물렀다. 아버지의 마지막은 새 영토를 얻는 전장이 아니라 병상이었다.','終 · 251년 가을'),
@@ -16,7 +16,7 @@ export const ENDING:StoryLine[]=[
 
 /** The canon ending stays fixed; these are summaries of the player's campaign record. */
 export function endingSummary(completed:string[],records:Record<string,{stars:number}|undefined>){
- const stars=completed.reduce((sum,id)=>sum+(records[id]?.stars??1),0),full=completed.length===9;
- return {stars,title:full&&stars>=24?'군략을 남긴 완주':full?'아홉 원정의 마침':'남겨진 원정 기록',
-  detail:full&&stars>=24?'보조 목표와 빠른 진군까지 살핀 기록입니다. 다른 우군 방침과 장비로 원정을 다시 지휘할 수 있습니다.':full?'아홉 원정의 이야기를 모두 이었습니다. 아직 얻지 못한 평가와 보조 목표에 다시 도전할 수 있습니다.':'종막에 도달했습니다. 아직 완료하지 않은 원정은 원정 기록에서 이야기 순서로 이어갈 수 있습니다.'};
+ const stars=completed.reduce((sum,id)=>sum+(records[id]?.stars??1),0),full=completed.length===SCENARIOS.length;
+ return {stars,title:full&&stars>=Math.ceil(SCENARIOS.length*3*.88)?'군략을 남긴 완주':full?'연대기 완주':'남겨진 원정 기록',
+  detail:full&&stars>=Math.ceil(SCENARIOS.length*3*.88)?'보조 목표와 빠른 진군까지 살핀 기록입니다. 다른 우군 방침과 장비로 원정을 다시 지휘할 수 있습니다.':full?'아홉 원정의 50개 전투와 이야기를 모두 이었습니다. 아직 얻지 못한 평가와 보조 목표에 다시 도전할 수 있습니다.':'종막에 도달했습니다. 아직 완료하지 않은 원정은 원정 기록에서 이야기 순서로 이어갈 수 있습니다.'};
 }

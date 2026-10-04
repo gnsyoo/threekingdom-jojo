@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "generated": "2026-10-04",
   "format": "WebP quality 90, original dimensions; no crop or resize",
   "maps": [
@@ -92,6 +92,416 @@
       "sha256": "775edb9cb8b5d60e3ff50b8e1380178d682720d4b5ed7f75081bba6da5c07cce",
       "bytes": 662892,
       "sourceBytes": 3308219
+    },
+    {
+      "id": "shangyong-01",
+      "file": "shangyong-01-field.webp",
+      "dimensions": "1536x1024",
+      "source": "exec-5cf7fe43-6d55-42c6-b073-43af965182e8.png",
+      "sourceSha256": "a6667a1f3ee383156f5c4d2a2ca37b0088f5aa0595d732d48ca5fa746c9a2c68",
+      "sha256": "49f78e0cf6672778903c0a6092feb1cd464664a54a1c96be4447ffd029a32c48",
+      "bytes": 664504,
+      "sourceBytes": 3704208
+    },
+    {
+      "id": "shangyong-02",
+      "file": "shangyong-02-field.webp",
+      "dimensions": "1536x1024",
+      "source": "exec-6e13252d-b07a-4a47-aea6-a5f5813c745e.png",
+      "sourceSha256": "7561152444e890c5d3d52c00877f85c01f2c3bc157faca13b6bbac88e233e4ae",
+      "sha256": "39f9d1040031181b69480a18a9e86754ecef233e80afe3354584c3d414b7c903",
+      "bytes": 688860,
+      "sourceBytes": 3791071
+    },
+    {
+      "id": "shangyong-03",
+      "file": "shangyong-03-field.webp",
+      "dimensions": "1536x1024",
+      "source": "exec-7f0a4570-107d-4904-af16-59e02893069c.png",
+      "sourceSha256": "8a47781c582b8a5be72208bedad0c5ec7dedaebfcb5405b68f33c5138266fa58",
+      "sha256": "1891ef50cdfca57b0772a6ad9e550805e6650fdc7f6cbc169d4d2c507a3a9909",
+      "bytes": 641486,
+      "sourceBytes": 3551415
+    },
+    {
+      "id": "shangyong-04",
+      "file": "shangyong-04-field.webp",
+      "dimensions": "1536x1024",
+      "source": "exec-fa727d3f-40eb-4a69-ad32-552406cf9904.png",
+      "sourceSha256": "b8b5bb8bbc9d46452b1b0b6cc33366f7c3ffa744fbe26b0b52ffad6d4e0f6776",
+      "sha256": "f4b4ac901a000b78256a74a56c8d71d47102ba29f93adf7b49abda35a3fd3d47",
+      "bytes": 698148,
+      "sourceBytes": 3865801
+    },
+    {
+      "id": "jieting-03",
+      "file": "jieting-03-field.webp",
+      "dimensions": "1536x1024",
+      "source": "exec-4f795d7b-73b1-463a-b777-77609935ee77.png",
+      "sourceSha256": "881c955f5513f7213596a5ac674cb9166408de65c40d7ab7e00e680ccce65f8b",
+      "sha256": "d208e7af5f2d4644cad036921325d182aa368a1acbacf12f14cc5ffd87581d38",
+      "bytes": 612658,
+      "sourceBytes": 3454122
+    },
+    {
+      "id": "jieting-04",
+      "file": "jieting-04-field.webp",
+      "dimensions": "1536x1024",
+      "source": "exec-f31209bb-5472-49be-b0b6-23df3bb06371.png",
+      "sourceSha256": "62201f79104bf6cd7bc16736a9ad0fc997ceece962d8124b5c5eff1aa199b84c",
+      "sha256": "fe586371b2d757917c9c4de4b2a6776ea986126da2ebee8f4c79976490c172b1",
+      "bytes": 737858,
+      "sourceBytes": 3997984
+    },
+    {
+      "id": "jieting-05",
+      "file": "jieting-05-field.webp",
+      "dimensions": "1536x1024",
+      "source": "exec-3b1dbaa9-3ffb-4416-9dbe-d0ece62a7757.png",
+      "sourceSha256": "32ebaa7387a3f659334bb051c77de7918176d045e2deebaf3bbd563a02aae5c5",
+      "sha256": "0eacb0d08e076ce3d5f70d652f53c10d9f1866438b61f62592fcb541c9a33b7a",
+      "bytes": 692356,
+      "sourceBytes": 3746668
+    },
+    {
+      "id": "xicheng-01",
+      "file": "xicheng-01-field.webp",
+      "dimensions": "1536x1024",
+      "source": "exec-6599c313-1e80-44c6-8446-07e3710dd04d.png",
+      "sourceSha256": "25654e0eeb460464f76d4212ae895a759d462e995ee19c2265138dcf34c45e5f",
+      "sha256": "90e9b6e370aa01afcff68296b86cabee2d6c79038942238dd3c4213bce281f64",
+      "bytes": 685150,
+      "sourceBytes": 3689895
+    },
+    {
+      "id": "xicheng-02",
+      "file": "xicheng-02-field.webp",
+      "dimensions": "1536x1024",
+      "source": "exec-15d2072a-0ce8-4d6e-ac24-e125b4a2d8f9.png",
+      "sourceSha256": "7cc8f91a56544db7f1c3d9535b117c6d097265213fa702285a70dc73626c00ea",
+      "sha256": "455429673f6519bbbc44d26a83726a1e6dad34fd5f8af3b8e82d1fbec19b96e5",
+      "bytes": 699462,
+      "sourceBytes": 3762018
+    },
+    {
+      "id": "xicheng-03",
+      "file": "xicheng-03-field.webp",
+      "dimensions": "1536x1024",
+      "source": "exec-1bab65cc-90b4-4e66-a948-c7842a9cfc90.png",
+      "sourceSha256": "7173fd1123b55da61adb2019eb782f8be165e118b3a643923bab8f14ef18381e",
+      "sha256": "3c6bcabfa0dcd8881d78d19aede45bfff283a462dd5cf9aa96bf04b59f28a367",
+      "bytes": 600172,
+      "sourceBytes": 3284537
+    },
+    {
+      "id": "xicheng-04",
+      "file": "xicheng-04-field.webp",
+      "dimensions": "1536x1024",
+      "source": "exec-4e2095ba-0df9-4086-9816-83c8726f795d.png",
+      "sourceSha256": "f0bf06c10e815c3dfdc260b70ff4534ff45b2eb98d759083d18e816573e55368",
+      "sha256": "24d477c1ba83b50d8f083402f654f91abafb5afb68cc33c3e95e5e2ab9001dd8",
+      "bytes": 724502,
+      "sourceBytes": 3859389
+    },
+    {
+      "id": "qishan-01",
+      "file": "qishan-01-field.webp",
+      "dimensions": "1536x1024",
+      "source": "exec-bece79c6-2595-403a-8476-c6e0a4bbe737.png",
+      "sourceSha256": "7a17e504f1b5ffc838c6b25ac7c12a210b7f62a111d2b216bfdc4342f0544bd6",
+      "sha256": "786e619381af56969599aee219072f5c4df63442ff0a57ebdf4ff3940aa153cc",
+      "bytes": 611518,
+      "sourceBytes": 3497135
+    },
+    {
+      "id": "qishan-02",
+      "file": "qishan-02-field.webp",
+      "dimensions": "1536x1024",
+      "source": "exec-f19ba14b-6b08-4dab-aa1e-b098c533ac02.png",
+      "sourceSha256": "cd0547ac2cf7d97e3ca7864030b36f8004efa5e321afe2310d1ee46561bccd66",
+      "sha256": "2054f184b98a03b9f801ddab887305d1ede36c99022de97dfe3e67f2a5614690",
+      "bytes": 694108,
+      "sourceBytes": 3870814
+    },
+    {
+      "id": "qishan-03",
+      "file": "qishan-03-field.webp",
+      "dimensions": "1536x1024",
+      "source": "exec-a2413369-6ab6-4b7f-9bb6-a73946a59c39.png",
+      "sourceSha256": "cb6d555165fa5ce087f5bca89819f545260c0022981eca420ec8d9359c43fd10",
+      "sha256": "2febc87c5b2b9193acf97b551a95944cb161ae350433fa172f1f35e89b038700",
+      "bytes": 574464,
+      "sourceBytes": 3298510
+    },
+    {
+      "id": "qishan-04",
+      "file": "qishan-04-field.webp",
+      "dimensions": "1536x1024",
+      "source": "exec-bbefab1e-0426-48db-953c-23e121c36274.png",
+      "sourceSha256": "3a6a1f3ffaaec807ecb21409d7eb2b35cfa7dda31f0a2d0f6faa88c422923572",
+      "sha256": "b6ad98c3ea6a7350afa9503d09aec0a365c72de450774e72c466a1551544e94f",
+      "bytes": 695790,
+      "sourceBytes": 3844663
+    },
+    {
+      "id": "shangfang-01",
+      "file": "shangfang-01-field.webp",
+      "dimensions": "1536x1024",
+      "source": "exec-823dd083-e548-4b32-8a4c-9553630715a4.png",
+      "sourceSha256": "08584ceca81c30777d12c05a2930263733a1d580904cde893bd51e78273d9db9",
+      "sha256": "e944c1174cd219e954c9ad31eed01216647b3edd175de4a8374fc2a89d18160e",
+      "bytes": 660928,
+      "sourceBytes": 3661577
+    },
+    {
+      "id": "shangfang-02",
+      "file": "shangfang-02-field.webp",
+      "dimensions": "1536x1024",
+      "source": "exec-97f2e12c-a1fb-4895-a90e-56e27c9791fd.png",
+      "sourceSha256": "e533494824760c438f1ee7b46cfd021f655b86f8505a22894d862d2bbad191e4",
+      "sha256": "b6f3ca1fc74270efbc37e4e000ba5465a4fa7ca93a18a85bd7ab462ee26d98bc",
+      "bytes": 673422,
+      "sourceBytes": 3666622
+    },
+    {
+      "id": "shangfang-03",
+      "file": "shangfang-03-field.webp",
+      "dimensions": "1536x1024",
+      "source": "exec-8f7ef57a-6a0c-4dce-a06e-05a391e10326.png",
+      "sourceSha256": "d22e4c3d76382697b04cd26a03a8d6658157fe5a65fcad17e700672bd17c8812",
+      "sha256": "a32151903a326277072446eb7f355dd29fbd5a9cab21db4cd22044913c68343d",
+      "bytes": 601536,
+      "sourceBytes": 3409122
+    },
+    {
+      "id": "shangfang-04",
+      "file": "shangfang-04-field.webp",
+      "dimensions": "1536x1024",
+      "source": "exec-77b98a4e-e632-4b4a-b825-4c7e12729e3d.png",
+      "sourceSha256": "37445a9ffcf06832a53718dac4cf4f7f6575750295cd4f9ba36903892f4eb409",
+      "sha256": "a4db6ab30d4ebf46f741bd10d472c2150dd88c73accfcb04fe83ff85042d23d3",
+      "bytes": 727094,
+      "sourceBytes": 3849936
+    },
+    {
+      "id": "wuzhang-01",
+      "file": "wuzhang-01-field.webp",
+      "dimensions": "1536x1024",
+      "source": "exec-e608208d-d42b-4c03-bc53-2cc80e50bd51.png",
+      "sourceSha256": "7a6af46212140143ad2720a50e72048db37fd474e3925b22844d775c900844ab",
+      "sha256": "db274528027324f592dacfa5e2cb62525cc19f167b23a37e1792a7a5af006c1b",
+      "bytes": 633666,
+      "sourceBytes": 3534807
+    },
+    {
+      "id": "wuzhang-02",
+      "file": "wuzhang-02-field.webp",
+      "dimensions": "1536x1024",
+      "source": "exec-aeab26a2-3744-4c90-8aad-0bf0bd477c0c.png",
+      "sourceSha256": "da9ed0790f7df87b40d3406314e9c00fdf0568f07f3e2bac068c9bb9680cbf59",
+      "sha256": "a34fa7cffb63e9f9dd3b2d5dbaa821a0875cf5085232882ca2cc810f11cbfcb2",
+      "bytes": 650532,
+      "sourceBytes": 3632914
+    },
+    {
+      "id": "wuzhang-03",
+      "file": "wuzhang-03-field.webp",
+      "dimensions": "1536x1024",
+      "source": "exec-2e91acd3-d78b-4a84-a103-3ad20395dfc7.png",
+      "sourceSha256": "056bab350ea0657eab5fb4cc038e817782ef7369b6cca38efb00791197c379ac",
+      "sha256": "bf43c9a779ff57ad4282463b2f38b092c38a90037440a5d34636a0ce64c2a1c1",
+      "bytes": 685876,
+      "sourceBytes": 3833621
+    },
+    {
+      "id": "wuzhang-04",
+      "file": "wuzhang-04-field.webp",
+      "dimensions": "1536x1024",
+      "source": "exec-7afcf309-c965-4781-9650-2288880d8adc.png",
+      "sourceSha256": "f08ce41b0c98de2c9bbd6bee2ce998d76463677911d37a53f0b69cce2b8332a7",
+      "sha256": "aa0b3d428c26fc24ff2f675e48ce3400e95cbdcfc5b979ab149aa800d0b67dc7",
+      "bytes": 605580,
+      "sourceBytes": 3468188
+    },
+    {
+      "id": "wuzhang-05",
+      "file": "wuzhang-05-field.webp",
+      "dimensions": "1536x1024",
+      "source": "exec-112fc479-6f65-413d-8d01-5899629096b1.png",
+      "sourceSha256": "29572b6be1ef4fdd4925ffd2f4a05f2baf0ddf52f34602e3cdc6d318917e2e87",
+      "sha256": "1164250ad5e61343875946a3bbba307fd425242e3c5b89d5fae71b13b8c2bddd",
+      "bytes": 594392,
+      "sourceBytes": 3419256
+    },
+    {
+      "id": "liaodong-01",
+      "file": "liaodong-01-field.webp",
+      "dimensions": "1536x1024",
+      "source": "exec-905919cc-b50e-43fd-931b-9a26249bf72a.png",
+      "sourceSha256": "950b45b0137f3ad521caab1dc4c5ba2dd1ddf6622886dfaa2ea7902b1d5933db",
+      "sha256": "ebbe661b40fdf31c62a388b9136971080665645a156322b240a393de5401eb0c",
+      "bytes": 678078,
+      "sourceBytes": 3783906
+    },
+    {
+      "id": "liaodong-02",
+      "file": "liaodong-02-field.webp",
+      "dimensions": "1536x1024",
+      "source": "exec-19530717-a27a-4211-9e90-0e239cba1cba.png",
+      "sourceSha256": "14a2423f6598259d7acb8f0bf8d108dd27dc0dbf135d76927746f49a26e38249",
+      "sha256": "ba12a49faab4fd28d7f2e752c79d5b923090c253f0b776cd7b7275e920c37b58",
+      "bytes": 718364,
+      "sourceBytes": 3951452
+    },
+    {
+      "id": "liaodong-03",
+      "file": "liaodong-03-field.webp",
+      "dimensions": "1536x1024",
+      "source": "exec-ab4f6109-5ed0-47fa-893e-7ba00745f839.png",
+      "sourceSha256": "98b20ca9465bbaed8e313a2c68e6313549f3a981abca8af621b5f5750da91448",
+      "sha256": "583452cbf00e9ed7803984d406742e5d09da258b6dabdbcb412dfb093a3e7931",
+      "bytes": 656632,
+      "sourceBytes": 3730045
+    },
+    {
+      "id": "liaodong-04",
+      "file": "liaodong-04-field.webp",
+      "dimensions": "1536x1024",
+      "source": "exec-4fd6420e-76d2-4a9d-91df-b2e6e994b4c7.png",
+      "sourceSha256": "d8b98ebdc3b061a4bc6c7900a22ed4b176744cfe298bca3a51a3528e491b6288",
+      "sha256": "413812c2f7bc16b14e126cfe5a44c998d530acb0409d6c84bfa540b6b57fedcc",
+      "bytes": 684090,
+      "sourceBytes": 3829662
+    },
+    {
+      "id": "liaodong-05",
+      "file": "liaodong-05-field.webp",
+      "dimensions": "1536x1024",
+      "source": "exec-d2b379d1-8406-4bf5-99b7-ae317cfea52b.png",
+      "sourceSha256": "9bb349420558a55c388ed38bcf53b712c8b6b2e0145a774c7951fc69fbee49db",
+      "sha256": "a82874fef081176e1413cfb69a6576da3a989bcb3e49eb16c49fb4d60c2061a7",
+      "bytes": 664944,
+      "sourceBytes": 3760123
+    },
+    {
+      "id": "liaodong-06",
+      "file": "liaodong-06-field.webp",
+      "dimensions": "1536x1024",
+      "source": "exec-2d6fdebf-7049-4819-9b01-44d51215af54.png",
+      "sourceSha256": "baa9c255828a9ef577c9cf47186c684e739b8376ad88aec037160eaa37d9c2ee",
+      "sha256": "cd4860ee21c5722065ed689369dce0befea94e2fce5075d1f526034fc1cca601",
+      "bytes": 683274,
+      "sourceBytes": 3704726
+    },
+    {
+      "id": "gaoping-01",
+      "file": "gaoping-01-field.webp",
+      "dimensions": "1536x1024",
+      "source": "exec-e7535051-a540-478c-9177-2fc22801c119.png",
+      "sourceSha256": "8a279f77259e209075e294ee10f00da21bff86f1569cd61759b3d0ed9138ee54",
+      "sha256": "f7391c4003be3573e0786f0a47317e8d13d7396ed12952e2394a2b43fb3e886d",
+      "bytes": 701378,
+      "sourceBytes": 3786533
+    },
+    {
+      "id": "shangyong-05",
+      "file": "shangyong-05-field.webp",
+      "dimensions": "1536x1024",
+      "source": "exec-4ea46cc6-5a24-464d-82fe-48ab4944b55e.png",
+      "sourceSha256": "3904e1d97bfb447e86f7cf3252471c94f73a619ba6e307d2ef8d220ad1fa51b6",
+      "sha256": "4005d4c0eaef6aab35b1e7920cee7bcf78807b6f9283b81b6b60a60b0512922a",
+      "bytes": 690226,
+      "sourceBytes": 3803296
+    },
+    {
+      "id": "jieting-01",
+      "file": "jieting-01-field.webp",
+      "dimensions": "1536x1024",
+      "source": "exec-91a5347a-3a11-4aa1-b124-9ce8611d5d00.png",
+      "sourceSha256": "b9841b36d8685961245740c576edb57398ac27e9efe3c6067b80c042e0465c27",
+      "sha256": "2d7a631a72050ee98855eaa72c56c7a1724359bce6fa9c9c93db4076c6b92253",
+      "bytes": 549206,
+      "sourceBytes": 3316040
+    },
+    {
+      "id": "gaoping-02",
+      "file": "gaoping-02-field.webp",
+      "dimensions": "1536x1024",
+      "source": "exec-ba9cab7d-3b8a-4d7c-bdf6-dfaedc03795a.png",
+      "sourceSha256": "8497524e6a9c2a7de4b7a860fd80908d40030f1458a66b635317fde43212201b",
+      "sha256": "3422822a0c9a38093b9a7c8992e390bbb687fd7c4452a38e60d15ec39d230281",
+      "bytes": 736852,
+      "sourceBytes": 3935862
+    },
+    {
+      "id": "gaoping-03",
+      "file": "gaoping-03-field.webp",
+      "dimensions": "1536x1024",
+      "source": "exec-e49f59c7-ebca-4999-8670-0dd051d3cffc.png",
+      "sourceSha256": "102b38607d6b8464a60a79a112b386a8a1394d72e1009e79dd9aa98767161a09",
+      "sha256": "0c50dfc89fe8952b43f42075cad72270b3b019ff2a34585adc8580f8be1ea5f7",
+      "bytes": 648378,
+      "sourceBytes": 3593070
+    },
+    {
+      "id": "gaoping-04",
+      "file": "gaoping-04-field.webp",
+      "dimensions": "1536x1024",
+      "source": "exec-38f0664c-bff9-4cdc-b150-0dfb50900003.png",
+      "sourceSha256": "7b2676cee0450f67f92698be3acb1bfd554b37809d7cecf7fd9df415a08f3dea",
+      "sha256": "3cdf53cabf5982ba6c1fa0fe6124d84fef4110fbfe69dfa5d424771c90ccbfe2",
+      "bytes": 691096,
+      "sourceBytes": 3766182
+    },
+    {
+      "id": "yangping-01",
+      "file": "yangping-01-field.webp",
+      "dimensions": "1536x1024",
+      "source": "exec-2505b883-8da7-4517-bcbe-eaa822af382d.png",
+      "sourceSha256": "9bbc3d56fed31b1aa716a5e9448e30129d0037f586f2b4d33e65245535604c08",
+      "sha256": "d7bb41c1a5bfb4c865812d04eedc253627741815409bd6a7202618b379945220",
+      "bytes": 646256,
+      "sourceBytes": 3559935
+    },
+    {
+      "id": "yangping-03",
+      "file": "yangping-03-field.webp",
+      "dimensions": "1536x1024",
+      "source": "exec-b39533c6-54f0-4dd3-8c22-e6fa20dccb34.png",
+      "sourceSha256": "c2f6473981c6c98d0393c598267d800a772b165d3a22855df72c4c0cc9219c49",
+      "sha256": "93362601b48ac45e1361fc5d19b624517ad0f5259a7a63ea5f5a4984b1bd7eb1",
+      "bytes": 763570,
+      "sourceBytes": 3988620
+    },
+    {
+      "id": "yangping-04",
+      "file": "yangping-04-field.webp",
+      "dimensions": "1536x1024",
+      "source": "exec-c1465252-b9ed-4088-bba9-2b1633ac2016.png",
+      "sourceSha256": "05881f8149b5c22b14cfaf92427cfb06ddde4006d72446325c5ee2a8c6cae0bc",
+      "sha256": "267871cbcac7baaadcd868d399e124f7dac4ab429c0e0ad474be432a8f6b94e6",
+      "bytes": 721402,
+      "sourceBytes": 3851045
+    },
+    {
+      "id": "jieting-02",
+      "file": "jieting-02-field.webp",
+      "dimensions": "1536x1024",
+      "source": "exec-b7985d88-ee40-4014-ad13-4d4dd211e20f.png",
+      "sourceSha256": "e9098d21909d8da6a4876900ff7587c0f4e948eabd3c2a959fca2ad52786c1de",
+      "sha256": "6451770a87eb6c541fad4dfaa8dc255c58eb6f17f9de1b04dd180160f990a52e",
+      "bytes": 666784,
+      "sourceBytes": 3734368
+    },
+    {
+      "id": "yangping-02",
+      "file": "yangping-02-field.webp",
+      "dimensions": "1536x1024",
+      "source": "exec-bd8d1c02-218f-42f1-b2e1-1da4306cf178.png",
+      "sourceSha256": "3d4aabe9c34dc7dff46d4cc40e5dda410b90791215726cb346256c4259bc796a",
+      "sha256": "b194aba86979c3c66d0aa875902c2a2530e0d69c13a0185c31207da96a61a43c",
+      "bytes": 693754,
+      "sourceBytes": 3786523
     }
   ]
 }

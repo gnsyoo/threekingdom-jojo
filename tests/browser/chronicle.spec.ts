@@ -29,7 +29,7 @@ test('intro and story cursors resume without replacing the saved battle',async({
  await page.locator('[data-action="campaign-start"]').click();await expect(page.locator('.chronicle-paper')).toContainText(INTRO[0].line);
  await page.locator('[data-action="chronicle-next"]').click();await resume(page);await expect(page.locator('.chronicle-paper')).toContainText(INTRO[1].line);
  await page.locator('[data-action="chronicle-prev"]').click();await expect(page.locator('.chronicle-paper')).toContainText('220년');
- await page.locator('[data-action="chronicle-skip"]').click();for(let n=0;n<4;n++)await page.getByRole('button',{name:'계속',exact:true}).click();await resume(page);await expect(page.locator('.dialogue-text')).toContainText(getScenario('shangyong').story[4].line);
+ await page.locator('[data-action="chronicle-skip"]').click();for(let n=0;n<2;n++)await page.getByRole('button',{name:'계속',exact:true}).click();await resume(page);await expect(page.locator('.dialogue-text')).toContainText(SCENARIOS[0].story[2].line);
  await page.locator('[data-action="story-skip"]').click();await page.locator('[data-action="choice-advance"]').click();await resume(page);await expect(page.locator('[data-action="choice-advance"]')).toHaveAttribute('aria-pressed','true');
  expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('simayi-chronicle.battle.v2')!).scenarioId)).toBe('liaodong');
 });

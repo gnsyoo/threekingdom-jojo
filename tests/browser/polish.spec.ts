@@ -45,7 +45,7 @@ for(const size of sizes)test(`${size.name}: eight UI reviews keep art, controls,
   await review('01-title',async()=>{
     for(const action of ['new','scenarios'])expect((await page.locator(`[data-action="${action}"]`).boundingBox())!.height).toBeGreaterThanOrEqual(44);
   });
-  await page.locator('[data-action="new"]').click();
+  await page.locator('[data-action="scenarios"]').click();await page.locator('[data-scenario-id="shangyong"]').click();
   await review('02-conversation',async()=>{
     await expect(page.locator('.dialogue-speaker')).toHaveText('사마의');
     expect((await page.getByRole('button',{name:'계속',exact:true}).boundingBox())!.height).toBeGreaterThanOrEqual(44);

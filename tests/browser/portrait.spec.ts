@@ -64,7 +64,7 @@ test('portrait touch movement survives two rotations, zoom and drag without chan
 });
 
 test('tablet portrait uses the same preparation sheet and keeps the conversation button intact',async({page})=>{
-  await page.setViewportSize({width:768,height:1024});await page.goto('/');await page.locator('[data-action="new"]').click();
+  await page.setViewportSize({width:768,height:1024});await page.goto('/');await page.locator('[data-action="scenarios"]').click();await page.locator('[data-scenario-id="shangyong"]').click();
   for(let i=0;i<5;i++)await page.getByRole('button',{name:'계속',exact:true}).click();await page.locator('[data-action="choice-advance"]').click();await textFits(page);await page.locator('[data-action="choice-confirm"]').click();await textFits(page);
   const sections=await page.locator('.prep-columns > *').evaluateAll(elements=>elements.map(e=>e.getBoundingClientRect()));expect(sections[1].y).toBeLessThan(sections[0].y);expect(sections[2].y).toBeGreaterThan(sections[0].y);
 });

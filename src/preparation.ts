@@ -1,13 +1,13 @@
 import { createBattle, findUnit, deployCommander, key, type BattleState, type Point, type Unit } from './core.ts';
 import { portraitHtml, unitSpriteHtml, artIcon, itemArt, assetUrl, formatGold, unitPortrait } from './art.ts';
 import { icon } from './icons.ts';
-import { getScenario, type ScenarioId } from './scenarios.ts';
+import { getScenario, SCENARIOS, type ScenarioId } from './scenarios.ts';
 
 export class Preparation {
   readonly battle: BattleState;
   gold = 200;
   selectedId = 'sima';
-  constructor(choice: 'protect' | 'advance',scenarioId:ScenarioId='shangyong',completedCount=0) { this.gold=200+50*Math.min(9,Math.max(0,completedCount));this.battle=createBattle(choice,getScenario(scenarioId).year,scenarioId); }
+  constructor(choice: 'protect' | 'advance',scenarioId:ScenarioId='shangyong',completedCount=0) { this.gold=200+50*Math.min(SCENARIOS.length,Math.max(0,completedCount));this.battle=createBattle(choice,getScenario(scenarioId).year,scenarioId); }
   get scenario() { return getScenario(this.battle.scenarioId); }
   isReserve(u:Unit) {return this.battle.scenarioId==='wuzhang'&&u.id==='guo'&&!this.battle.events.includes('guo-arrived');}
   get selected() { return findUnit(this.battle, this.selectedId)!; }
@@ -35,7 +35,7 @@ export class Preparation {
           <div class="prep-briefing"><span>${scenario.title}</span><strong>${scenario.objective}</strong><p>${scenario.briefing}</p><button data-action="prep-objective">${icon('scroll',18)}전투 목표 확인</button></div>
         </section>
         <section class="prep-character" aria-label="선택 장수와 장비"><div class="prep-portrait-window">${unitPortrait(u)}<div class="character-nameplate ornate-panel"><strong>${u.name}</strong><span>${artIcon('flag',24)}${u.role}</span></div></div>
-          <div class="prep-vitals ornate-panel"><div class="prep-level"><strong>Lv. ${u.level}</strong><i class="prep-exp" role="progressbar" aria-label="원정 순서" aria-valuenow="${scenario.chapter}" aria-valuemin="1" aria-valuemax="9"><b style="width:${scenario.chapter/9*100}%"></b></i><span>원정 ${scenario.chapter} / 9</span></div><div class="prep-meter"><span>${icon('heart',20)}HP</span><strong>${hp} / ${u.maxHp}</strong><i><b style="width:${hp/u.maxHp*100}%"></b></i></div><div class="prep-meter mp"><span>◆ MP</span><strong>${u.mp} / ${u.maxMp}</strong><i><b style="width:${u.maxMp?100:0}%"></b></i></div></div>
+          <div class="prep-vitals ornate-panel"><div class="prep-level"><strong>Lv. ${u.level}</strong><i class="prep-exp" role="progressbar" aria-label="전투 진행" aria-valuenow="${scenario.chapter}" aria-valuemin="1" aria-valuemax="${SCENARIOS.length}"><b style="width:${scenario.chapter/SCENARIOS.length*100}%"></b></i><span>전투 ${scenario.chapter} / ${SCENARIOS.length}</span></div><div class="prep-meter"><span>${icon('heart',20)}HP</span><strong>${hp} / ${u.maxHp}</strong><i><b style="width:${hp/u.maxHp*100}%"></b></i></div><div class="prep-meter mp"><span>◆ MP</span><strong>${u.mp} / ${u.maxMp}</strong><i><b style="width:${u.maxMp?100:0}%"></b></i></div></div>
           <section class="prep-equipment ornate-panel"><h2>장비</h2><div>${this.gear(u).map(item=>`<button data-action="prep-equipment" aria-label="${item.name} 장비 확인">${itemArt(item.icon,item.name)}<strong>${item.name}</strong><small>${item.effect}</small></button>`).join('')}</div></section>
         </section>
         <div class="prep-right"><section class="deployment-panel ornate-panel"><h2>출진 위치 설정</h2><button class="prep-map" style="--battle-map:url('${assetUrl(scenario.background)}')" data-action="prep-deployment" aria-label="출진 위치 변경">${roster.map((unit,index)=>this.isReserve(unit)?'':`<span class="prep-map-unit ${unit.team}" style="left:${(unit.x+.5)/scenario.cols*100}%;top:${(unit.y+.5)/scenario.rows*100}%;--sprite-x:${unit.sprite%4*100/3}%;--sprite-y:${Math.floor(unit.sprite/4)*100}%">${unitSpriteHtml(unit.sprite)}<b class="deployment-index">${index+1}</b><span>${unit.name}</span></span>`).join('')}<span class="map-caption">${this.battle.units[0].name}의 시작 위치를 정하세요 ${icon('chevron',16)}</span></button><div class="deployment-roster">${roster.map((unit,index)=>`<span><b>${index+1}</b>${unit.name}${this.isReserve(unit)?' · 지원':''}</span>`).join('')}</div></section>

@@ -19,7 +19,7 @@ export function chooseAction(s:BattleState):{move?:Point;attack?:string;heal?:bo
  const at=move?{...u,...move}:u;
  if(target&&distance(at,target)===0)return {move};
  const enemy=enemies.filter(e=>distance(at,e)>=u.range[0]&&distance(at,e)<=u.range[1]).sort((a,b)=>a.hp-b.hp)[0];
- return {move,attack:scenario.goal==='escape'&&scenario.id==='xicheng'?undefined:enemy?.id};
+ return {move,attack:scenario.bonusRule==='noCombat'?undefined:enemy?.id};
 }
 export function playMission(id:ScenarioId,choice:Choice='protect',seed=190):BattleState {
  let s=createBattle(choice,seed,id);setTactic(s,getScenario(id).goal==='escape'?'guard':'advance');let steps=0;

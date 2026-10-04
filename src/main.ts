@@ -12,7 +12,7 @@ import { icon } from './icons.ts';
 import type Phaser from 'phaser';
 import { portraitHtml, artIcon, assetUrl, unitPortrait } from './art.ts';
 import { Preparation } from './preparation.ts';
-import { SCENARIOS, getScenario, isScenarioId, nextScenario, type ScenarioId } from './scenarios.ts';
+import { SCENARIOS, CAMPAIGN_ARCS, FIRST_SCENARIO_ID, getScenario, isScenarioId, nextScenario, type ScenarioId } from './scenarios.ts';
 
 const root = document.querySelector<HTMLDivElement>('#app')!;
 const loaded = loadBattle();
@@ -29,7 +29,7 @@ let preparation: Preparation | null = null;
 let pendingDeployment: Point | null = null;
 let storyChoice: 'protect' | 'advance' | null = null;
 let storyAuto = false, storyTimer = 0;
-let storyScenario:ScenarioId='shangyong', threat=false;
+let storyScenario:ScenarioId=FIRST_SCENARIO_ID, threat=false;
 let chronicleKind:'intro'|'ending'='intro',chronicleIndex=0;
 const commanderName=()=>activeScenario().commanderName??'사마의';
 const activeScenario=()=>getScenario(screen==='story'?storyScenario:screen==='preparation'&&preparation?preparation.battle.scenarioId:state.scenarioId);
@@ -82,13 +82,13 @@ function showTitle() {
       <div class="eyebrow"><span></span> 삼국지 전술 연대기</div>
       <h1>사마의<span>전</span><small>司馬懿傳</small></h1>
       <p class="title-quote">승부를 읽고,<br />때를 기다린다.</p>
-      <p class="title-description">급습에서 긴 대치로, 전장에서 낙양으로.<br />아홉 원정을 따라 승리와 실패의 기록을 잇는다.</p>
+      <p class="title-description">급습에서 긴 대치로, 전장에서 낙양으로.<br />${SCENARIOS.length}개 전투로 승리와 실패의 기록을 잇는다.</p>
       <div class="title-actions">${journey?`<button class="primary" data-action="journey-continue">${icon('scroll')}<span>이야기 이어보기<small>${journey.stage==='intro'?'서막':journey.stage==='ending'?'종막':getScenario(journey.scenarioId).name} · ${journey.stage==='preparation'?'출진 준비':`${journey.index+1}번째 장면`}</small></span>${icon('chevron')}</button>`:''}${hasSave ? `<button class="primary title-continue" data-action="continue">${icon('flag')}<span>${state.outcome === 'playing' ? '전투 이어하기' : '전투 결과 보기'}<small>${scenario.name} · ${state.round}라운드</small></span>${icon('chevron')}</button>` : ''}
       <button class="${hasSave||journey?'secondary':'primary'}" data-action="campaign-start">${icon('scroll')}<span>연대기 시작<small>220년 서막부터</small></span>${icon('chevron')}</button><button class="secondary" data-action="new">${icon('sword')}<span>첫 전투 출진</span>${icon('chevron')}</button><button class="secondary scenario-select" data-action="scenarios">${icon('map')}<span>원정 기록 <small>${completed.length} / ${SCENARIOS.length} 완료</small></span>${icon('chevron')}</button></div>
       ${loaded.damaged ? `<p class="save-warning">${loaded.recovered ? '이전 정상 기록을 복구했습니다.' : '저장 기록을 읽지 못했습니다. 새 전투를 시작하거나 기록을 불러오세요.'}</p>` : ''}
       ${completed.includes('yangping')?'<button class="text-button title-ending" data-action="ending">엔딩 다시보기</button>':''}<button class="text-button title-import" data-action="import">${icon('save', 16)} 저장 기록 불러오기</button>
     </section>
-    <footer class="title-footer"><span>삼국연의 · 아홉 원정</span><span class="title-footer-line"></span><span>격자 위에서 펼쳐지는 삼국지</span></footer>
+    <footer class="title-footer"><span>삼국연의 · 50개 전투</span><span class="title-footer-line"></span><span>격자 위에서 펼쳐지는 삼국지</span></footer>
   </main>`;
 }
 
@@ -96,7 +96,7 @@ function showChronicle(kind:'intro'|'ending',index=0){
   window.clearTimeout(storyTimer);storyAuto=false;generation++;aiRunning=false;renderer?.destroy(true);renderer=null;scene=null;
   screen='chronicle';chronicleKind=kind;chronicleIndex=index;modalKind='';document.querySelector('#modal-layer')?.remove();
   const lines=kind==='intro'?INTRO:ENDING,s=lines[index],last=index===lines.length-1,recap=endingSummary(loadCompleted(),loadRecords());
-  root.innerHTML=`<main class="chronicle-screen ${kind}"><header class="chronicle-header"><button data-action="title" aria-label="처음 화면">${icon('back',20)}</button><span>${kind==='intro'?'序 · 서막':'終 · 종막'}</span><small>${index+1} / ${lines.length}</small></header><div class="chronicle-content"><div class="chronicle-portrait">${portraitHtml(s.portrait,s.speaker,'','xMidYMid meet')}</div><article class="chronicle-paper"><span class="chronicle-kicker">${kind==='intro'?'위나라의 신하':'남겨진 수'}</span><h1>${s.speaker}</h1><p>${s.line}</p><small>${s.note}</small>${kind==='ending'&&last?`<div class="chronicle-completion">${recap.title}<span>완료 원정 ${loadCompleted().length} / ${SCENARIOS.length} · 원정 평가 ${recap.stars} / 27</span><span>${recap.detail}</span></div>`:''}</article></div><footer class="chronicle-footer"><button class="secondary" data-action="chronicle-prev" ${index===0?'disabled':''}>이전</button>${kind==='intro'&&!last?'<button class="text-button" data-action="chronicle-skip">첫 원정으로</button>':''}<button class="primary" data-action="chronicle-next">${last?kind==='intro'?'상용 이야기로':'연대기 마침':'다음 장면'} ${icon('chevron',18)}</button></footer></main>`;
+  root.innerHTML=`<main class="chronicle-screen ${kind}"><header class="chronicle-header"><button data-action="title" aria-label="처음 화면">${icon('back',20)}</button><span>${kind==='intro'?'序 · 서막':'終 · 종막'}</span><small>${index+1} / ${lines.length}</small></header><div class="chronicle-content"><div class="chronicle-portrait">${portraitHtml(s.portrait,s.speaker,'','xMidYMid meet')}</div><article class="chronicle-paper"><span class="chronicle-kicker">${kind==='intro'?'위나라의 신하':'남겨진 수'}</span><h1>${s.speaker}</h1><p>${s.line}</p><small>${s.note}</small>${kind==='ending'&&last?`<div class="chronicle-completion">${recap.title}<span>완료 전투 ${loadCompleted().length} / ${SCENARIOS.length} · 전투 평가 ${recap.stars} / ${SCENARIOS.length*3}</span><span>${recap.detail}</span></div>`:''}</article></div><footer class="chronicle-footer"><button class="secondary" data-action="chronicle-prev" ${index===0?'disabled':''}>이전</button>${kind==='intro'&&!last?'<button class="text-button" data-action="chronicle-skip">첫 원정으로</button>':''}<button class="primary" data-action="chronicle-next">${last?kind==='intro'?'첫 정찰로':'연대기 마침':'다음 장면'} ${icon('chevron',18)}</button></footer></main>`;
   saveJourney({stage:kind,scenarioId:kind==='intro'?'shangyong':'yangping',index,choice:null});
 }
 function resumeJourney(){
@@ -131,7 +131,7 @@ function scheduleStory() {
   if (screen !== 'story' || !storyAuto || modalKind || document.hidden || storyIndex >= lastStoryIndex()) return;
   storyTimer = window.setTimeout(() => { if (screen==='story' && storyAuto && !modalKind) { storyIndex++; showStory(); } }, Math.max(4000, storyLines()[storyIndex].line.length*70));
 }
-function beginStory(scenarioId:ScenarioId='shangyong') { generation++;aiRunning=false;renderer?.destroy(true);renderer=null;scene=null;storyScenario=scenarioId;preparation=null;storyChoice=null;storyIndex=0;storyAuto=false;showStory(); }
+function beginStory(scenarioId:ScenarioId=FIRST_SCENARIO_ID) { generation++;aiRunning=false;renderer?.destroy(true);renderer=null;scene=null;storyScenario=scenarioId;preparation=null;storyChoice=null;storyIndex=0;storyAuto=false;showStory(); }
 function showPreparation() {
   if (!preparation) return;
   const scrollTop=document.querySelector('.prep-columns')?.scrollTop ?? 0;
@@ -309,16 +309,16 @@ function openModal(kind: string) {
     <div class="save-actions"><button class="secondary" data-action="export">${icon('save', 18)} 저장 파일 내보내기</button><button class="secondary" data-action="import">${icon('scroll', 18)} 저장 파일 불러오기</button></div>`;
     footer = `<button class="text-button" data-action="title">${icon('back', 16)} 처음 화면</button><button class="primary" data-action="close-modal">전투 계속</button>`;
   }
-  if (kind === 'end-turn') { body = `<span class="modal-eyebrow">사마의 · 행동 가능</span><h2>이번 차례를 마칠까요?</h2><p class="modal-note">${actor().name}가 아직 행동하지 않았습니다. 턴을 종료하면 우군과 적군이 움직입니다.${state.pendingMove ? ' 현재 이동은 확정됩니다.' : ''}</p>`; footer = '<button class="secondary" data-action="close-modal">취소</button><button class="primary" data-action="end-confirm">턴 종료</button>'; }
+  if (kind === 'end-turn') { body = `<span class="modal-eyebrow">${actor().name} · 행동 가능</span><h2>이번 차례를 마칠까요?</h2><p class="modal-note">${actor().name}가 아직 행동하지 않았습니다. 턴을 종료하면 우군과 적군이 움직입니다.${state.pendingMove ? ' 현재 이동은 확정됩니다.' : ''}</p>`; footer = '<button class="secondary" data-action="close-modal">취소</button><button class="primary" data-action="end-confirm">턴 종료</button>'; }
   if (kind === 'new') { body = '<span class="modal-eyebrow">새로운 출진</span><h2>사마의의 첫 원정을 다시 시작합니다</h2><p class="modal-note">현재 전투 기록 대신 새 전투가 저장됩니다. 필요하면 먼저 저장 파일을 내보내세요.</p>'; footer = '<button class="secondary" data-action="close-modal">취소</button><button class="primary" data-action="new-confirm">새로 시작</button>'; }
-  if (kind === 'import-confirm' && pendingImport) { body = `<span class="modal-eyebrow">저장 기록</span><h2>${getScenario(pendingImport.scenarioId).name} · ${pendingImport.round}라운드</h2><p class="modal-note">확인한 기록을 불러오고 현재 전투를 교체합니다. 사마의 HP ${findUnit(pendingImport, 'sima')!.hp}, 회복약 ${pendingImport.potions}개.</p>`; footer = '<button class="secondary" data-action="close-modal">취소</button><button class="primary" data-action="import-confirm">기록 불러오기</button>'; }
+  if (kind === 'import-confirm' && pendingImport) { body = `<span class="modal-eyebrow">저장 기록</span><h2>${getScenario(pendingImport.scenarioId).name} · ${pendingImport.round}라운드</h2><p class="modal-note">확인한 기록을 불러오고 현재 전투를 교체합니다. ${findUnit(pendingImport, 'sima')!.name} HP ${findUnit(pendingImport, 'sima')!.hp}, 회복약 ${pendingImport.potions}개.</p>`; footer = '<button class="secondary" data-action="close-modal">취소</button><button class="primary" data-action="import-confirm">기록 불러오기</button>'; }
   if(kind==='scenarios') {
     const completed=loadCompleted(),records=loadRecords(),recommended=SCENARIOS.find(s=>!completed.includes(s.id));
-    body=`<span class="modal-eyebrow">사마의전 · 아홉 원정</span><h2>전투 선택</h2><div class="scenario-list">${SCENARIOS.map(s=>`<button class="scenario-card" data-action="scenario-pick" data-scenario-id="${s.id}"><img src="${assetUrl(s.background)}" alt="${s.name} 전장" loading="lazy" decoding="async"/><small>제${s.chapter}전투 · ${s.year}년</small><strong>${s.title}</strong><span>${s.objective}<br>${s.goal==='escape'?'회군':s.goal==='occupy'?'거점 확보':s.goal==='hold'?'방어':'격파'} · 제한 ${s.turnLimit}턴</span><em>${records[s.id]?`✓ 승리 기록 · ${'★'.repeat(records[s.id]!.stars)} · 최고 ${records[s.id]!.turns}턴`:completed.includes(s.id)?'✓ 승리 기록':recommended?.id===s.id?'다음 추천 원정':'출진 가능'}</em></button>`).join('')}</div><p class="modal-note">첫 원정부터 이야기 순서로 진행하거나 각 전투를 바로 시작할 수 있습니다. 출진을 확정하면 현재 전투 기록이 교체됩니다.</p>`;
+    body=`<span class="modal-eyebrow">사마의전 · 50개 전투</span><h2>전투 선택</h2><div class="campaign-tools"><label>원정<select id="campaign-arc"><option value="all">전체 ${SCENARIOS.length}개 전투</option>${CAMPAIGN_ARCS.map(a=>`<option value="${a.id}">${a.name} · ${a.count}개 전투</option>`).join('')}</select></label><label>찾기<input id="campaign-search" type="search" maxlength="60" placeholder="전투 이름·목표 검색" /></label><span id="campaign-count" aria-live="polite">${SCENARIOS.length}개 전투</span></div><p class="campaign-empty" hidden>조건에 맞는 전투가 없습니다.</p><div class="scenario-list">${SCENARIOS.map(s=>`<button class="scenario-card" data-arc="${s.arcId}" data-search="${esc(s.title+' '+s.objective+' '+s.name)}" data-action="scenario-pick" data-scenario-id="${s.id}"><img src="${assetUrl(s.background)}" alt="${s.name} 전장" loading="lazy" decoding="async"/><small>제${s.chapter}전투 · ${s.year}년 · 원정 단계 ${s.episode}/${CAMPAIGN_ARCS.find(a=>a.id===s.arcId)!.count}</small><strong>${s.title}</strong><span>${s.objective}<br>${s.goal==='escape'?(s.movementLabel??'회군'):s.goal==='occupy'?'거점 확보':s.goal==='hold'?'방어':'격파'} · 제한 ${s.turnLimit}턴</span><em>${records[s.id]?`✓ 승리 기록 · ${'★'.repeat(records[s.id]!.stars)} · 최고 ${records[s.id]!.turns}턴`:completed.includes(s.id)?'✓ 승리 기록':recommended?.id===s.id?'다음 추천 원정':'출진 가능'}</em></button>`).join('')}</div><p class="modal-note">첫 원정부터 이야기 순서로 진행하거나 각 전투를 바로 시작할 수 있습니다. 출진을 확정하면 현재 전투 기록이 교체됩니다.</p>`;
   }
   if (kind === 'result') {
     const won=state.outcome==='won',bosses=state.units.filter(u=>u.boss),bonus=bonusComplete(state),next=nextScenario(state.scenarioId);
-    body=`<span class="modal-eyebrow">${scenario.name} · 전투 종료</span><div class="result-seal ${won?'won':'lost'}">${won?scenario.goal==='escape'?'還':scenario.goal==='occupy'?'達':'勝':'退'}</div><h2 class="result-title">${scenario.title} ${won?scenario.checkpoints?'임무 완료':'승리':'패배'}</h2><p class="result-quote">${won?'전투 목표를 달성했습니다.':actor().hp===0?`${actor().name}가 전장에서 퇴각했습니다.`:'제한 라운드 안에 임무 목표를 달성하지 못했습니다.'}</p><div class="result-metrics"><div><strong>${state.round}</strong><span>소요 라운드</span></div><div><strong>${state.attacksMade}</strong><span>${actor().name}의 공격</span></div><div><strong>${scenario.goal==='hold'?`${state.round}/${scenario.holdUntil}`:scenario.checkpoints?`${state.objectives.length}/${scenario.checkpoints.length}`:`${bosses.filter(u=>!u.hp).length}/${bosses.length}`}</strong><span>${scenario.goal==='hold'?'방어 목표 턴':scenario.checkpoints?'거점 확보':'지휘관 퇴각'}</span></div></div><div class="result-objective"><span>${bonus?'✓':'◇'} ${scenario.bonus}</span><strong>${bonus?'완료':'미완료'}</strong></div><p class="modal-note">${won?scenario.victory:'위치와 회복 시점을 바꿔 다시 도전해 보세요.'}</p>${won?`<div class="result-stars" aria-label="원정 평가 ${missionStars(state)}성">${'★'.repeat(missionStars(state))}${'☆'.repeat(3-missionStars(state))}<small>목표 달성 · 보조 목표 · ${scenario.parTurns}턴 이내</small></div><div class="result-narrative">${scenario.aftermath.map(l=>`<p><strong>${l.speaker}</strong><span>${l.line}</span></p>`).join('')}</div>`:''}`;
+    body=`<span class="modal-eyebrow">${scenario.name} · 전투 종료</span><div class="result-seal ${won?'won':'lost'}">${won?scenario.goal==='escape'?(scenario.movementLabel&&scenario.movementLabel!=='회군'?'達':'還'):scenario.goal==='occupy'?'達':'勝':'退'}</div><h2 class="result-title">${scenario.title} ${won?scenario.checkpoints?'임무 완료':'승리':'패배'}</h2><p class="result-quote">${won?'전투 목표를 달성했습니다.':actor().hp===0?`${actor().name}가 전장에서 퇴각했습니다.`:'제한 라운드 안에 임무 목표를 달성하지 못했습니다.'}</p><div class="result-metrics"><div><strong>${state.round}</strong><span>소요 라운드</span></div><div><strong>${state.attacksMade}</strong><span>${actor().name}의 공격</span></div><div><strong>${scenario.goal==='hold'?`${state.round}/${scenario.holdUntil}`:scenario.checkpoints?`${state.objectives.length}/${scenario.checkpoints.length}`:`${bosses.filter(u=>!u.hp).length}/${bosses.length}`}</strong><span>${scenario.goal==='hold'?'방어 목표 턴':scenario.checkpoints?'거점 확보':'지휘관 퇴각'}</span></div></div><div class="result-objective"><span>${bonus?'✓':'◇'} ${scenario.bonus}</span><strong>${bonus?'완료':'미완료'}</strong></div>${won&&scenario.aftermath.some(l=>l.line===scenario.victory)?'':`<p class="modal-note">${won?scenario.victory:'위치와 회복 시점을 바꿔 다시 도전해 보세요.'}</p>`}${won?`<div class="result-stars" aria-label="원정 평가 ${missionStars(state)}성">${'★'.repeat(missionStars(state))}${'☆'.repeat(3-missionStars(state))}<small>목표 달성 · 보조 목표 · ${scenario.parTurns}턴 이내</small></div><div class="result-narrative">${scenario.aftermath.map(l=>`<p><strong>${l.speaker}</strong><span>${l.line}</span></p>`).join('')}</div>`:''}`;
     footer=`<button class="secondary" data-action="title">처음 화면</button>${won?next?`<button class="primary" data-action="next-battle">${next.name} 이야기로 ${icon('chevron',18)}</button>`:'<button class="primary" data-action="ending">종막 보기</button>':'<button class="primary" data-action="restart">다시 출진</button>'}`;
   }
   if (!footer) footer = `<button class="primary" data-action="close-modal">${kind === 'objective' ? '전장으로' : '닫기'} ${icon('chevron', 16)}</button>`;
@@ -401,11 +401,21 @@ document.addEventListener('click', event => {
   if (a === 'import') chooseImport();
   if (a === 'import-confirm' && pendingImport) { closeModal(); state = pendingImport; pendingImport = null;clearJourney(); remember(); mountBattle(); }
 });
+function filterCampaign(){
+ const arc=document.querySelector<HTMLSelectElement>('#campaign-arc')?.value??'all';
+ const query=document.querySelector<HTMLInputElement>('#campaign-search')?.value.trim().toLocaleLowerCase()??'';
+ let count=0;
+ for(const card of document.querySelectorAll<HTMLElement>('.scenario-card')){card.hidden=(arc!=='all'&&card.dataset.arc!==arc)||!card.dataset.search!.toLocaleLowerCase().includes(query);if(!card.hidden)count++;}
+ const label=document.querySelector('#campaign-count');if(label)label.textContent=`${count}개 전투`;
+ const empty=document.querySelector<HTMLElement>('.campaign-empty');if(empty)empty.hidden=count>0;
+}
+document.addEventListener('change',e=>{if((e.target as HTMLElement)?.id==='campaign-arc')filterCampaign();});
+document.addEventListener('input',e=>{if((e.target as HTMLElement)?.id==='campaign-search')filterCampaign();});
 document.addEventListener('keydown', e => {
   if (modalKind) {
     if (e.key === 'Escape') { e.preventDefault(); closeModal(); }
     if (e.key === 'Tab') {
-      const items = [...document.querySelectorAll<HTMLElement>('#modal-layer button:not(:disabled)')];
+      const items = [...document.querySelectorAll<HTMLElement>('#modal-layer button:not(:disabled),#modal-layer input,#modal-layer select')].filter(item=>item.getClientRects().length>0);
       const first = items[0], last = items.at(-1);
       if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last?.focus(); }
       if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first?.focus(); }

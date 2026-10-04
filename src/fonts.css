@@ -3,28 +3,28 @@
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url(/assets/fonts/serif-0.ttf?v=chronicle4) format('truetype');
+  src: url(/assets/fonts/serif-0.ttf?v=campaign50) format('truetype');
 }
 @font-face {
   font-family: 'Noto Serif KR';
   font-style: normal;
   font-weight: 500;
   font-display: swap;
-  src: url(/assets/fonts/serif-1.ttf?v=chronicle4) format('truetype');
+  src: url(/assets/fonts/serif-1.ttf?v=campaign50) format('truetype');
 }
 @font-face {
   font-family: 'Noto Serif KR';
   font-style: normal;
   font-weight: 600;
   font-display: swap;
-  src: url(/assets/fonts/serif-2.ttf?v=chronicle4) format('truetype');
+  src: url(/assets/fonts/serif-2.ttf?v=campaign50) format('truetype');
 }
 @font-face {
   font-family: 'Noto Serif KR';
   font-style: normal;
   font-weight: 700;
   font-display: swap;
-  src: url(/assets/fonts/serif-3.ttf?v=chronicle4) format('truetype');
+  src: url(/assets/fonts/serif-3.ttf?v=campaign50) format('truetype');
 }
 
 @font-face {
@@ -32,26 +32,26 @@
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url(/assets/fonts/sans-0.ttf?v=chronicle4) format('truetype');
+  src: url(/assets/fonts/sans-0.ttf?v=campaign50) format('truetype');
 }
 @font-face {
   font-family: 'Noto Sans KR';
   font-style: normal;
   font-weight: 500;
   font-display: swap;
-  src: url(/assets/fonts/sans-1.ttf?v=chronicle4) format('truetype');
+  src: url(/assets/fonts/sans-1.ttf?v=campaign50) format('truetype');
 }
 @font-face {
   font-family: 'Noto Sans KR';
   font-style: normal;
   font-weight: 600;
   font-display: swap;
-  src: url(/assets/fonts/sans-2.ttf?v=chronicle4) format('truetype');
+  src: url(/assets/fonts/sans-2.ttf?v=campaign50) format('truetype');
 }
 @font-face {
   font-family: 'Noto Sans KR';
   font-style: normal;
   font-weight: 700;
   font-display: swap;
-  src: url(/assets/fonts/sans-3.ttf?v=chronicle4) format('truetype');
+  src: url(/assets/fonts/sans-3.ttf?v=campaign50) format('truetype');
 }

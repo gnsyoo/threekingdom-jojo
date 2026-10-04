@@ -6,9 +6,9 @@ Current Sima Yi campaign (generated 2026-10-04):
 
 - `sima-portraits.png`: original Sima Yi, Sima Shi, Niu Jin (牛金), Guo Huai, Hu Zun, Meng Da, Zhuge Liang, Gongsun Yuan, in a 4×2 portrait atlas.
 - `sima-motion.png`: the same eight characters, eight poses per row: four walk and four attack, 64 new frames. The PNG remains unmodified; `sima-motion.json` describes inspected alpha bounds and centered pivots.
-- `shangyong-field.webp`, `jieting-field.webp`, `xicheng-field.webp`, `qishan-field.webp`, `shangfang-field.webp`, `wuzhang-field.webp`, `liaodong-field.webp`, `gaoping-field.webp`, `yangping-field.webp`: nine newly generated detailed battlefield illustrations, guided by project-authored references made from the actual tactical terrain arrays. No commercial game map was traced or reused. Generated PNG sources remain in the generation workspace; WebP quality 90 preserves their original dimensions without cropping, resizing or recoloring. `battle-art.json` records source filenames, source/output SHA-256 hashes, dimensions and output sizes. All map presentations use these illustrated files. Fire, objectives, grid and troops remain runtime layers.
+- `shangyong-field.webp`, `jieting-field.webp`, `xicheng-field.webp`, `qishan-field.webp`, `shangfang-field.webp`, `wuzhang-field.webp`, `liaodong-field.webp`, `gaoping-field.webp`, `yangping-field.webp`: the original nine detailed battlefield illustrations, extended by 41 individually generated `*-01-field.webp` through `*-06-field.webp` tactical episode maps, guided by project-authored references made from the actual tactical terrain arrays. No commercial game map was traced or reused. Generated PNG sources remain in the generation workspace; WebP quality 90 preserves their original dimensions without cropping, resizing or recoloring. `battle-art.json` records source filenames, source/output SHA-256 hashes, dimensions and output sizes. All map presentations use these illustrated files. Fire, objectives, grid and troops remain runtime layers.
 - `chronicle-portraits.png`: eight new original portraits (Zhang He, Ma Su, Wang Ping, Wei Yan, Sima Zhao, Cao Shuang, Jiang Wei, Li Sheng), a 1536×1024 4×2 atlas. The generated PNG remains unmodified; SVG clipping preserves each cell’s proportions.
-- `scripts/build-campaign-maps.ts`: project-authored vector layout references for all nine battlefields, generated into `qa-artifacts/map-layouts/` for art direction. The six former vector placeholder backgrounds have been retired.
+- `scripts/build-campaign-maps.ts`: project-authored vector layout references for all fifty battlefields, generated into `qa-artifacts/map-layouts/` for art direction. The six former vector placeholder backgrounds have been retired.
 - New tactical units reuse existing class motion frames where applicable; each new historical character does not have an independent eight-pose sheet.
 - General infantry and archers retain 16 frames from `units-walk.png`/`units-attack.png`.
 
@@ -29,7 +29,7 @@ Previously generated Cao Cao campaign artwork, retained as project history:
 
 `unit-motion.json` and `boss-motion.json` contain project-authored source rectangle, foot pivot, and scale metadata for the unmodified motion atlases. `ui/frame.svg` and `ui/ink-paper.svg` are project-authored decorative frame and paper illustrations. Menus, text, health bars, and deployment markers remain live interface elements.
 
-The bundled font subsets are Noto Sans KR and Noto Serif KR. They were rebuilt from the official Google Fonts variable TTFs with 520 Korean/Han characters, covering every character in the current UI and are self-hosted so the game does not contact a font service during play.
+The bundled font subsets are Noto Sans KR and Noto Serif KR. They were rebuilt from the official Google Fonts variable TTFs with 551 Korean/Han characters, covering every character in the current UI and are self-hosted so the game does not contact a font service during play.
 
 - Noto CJK source: https://github.com/notofonts/noto-cjk
 - Font licenses: `fonts/Sans-LICENSE.txt` and `fonts/Serif-LICENSE.txt` (SIL Open Font License 1.1)

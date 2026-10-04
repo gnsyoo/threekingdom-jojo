@@ -34,7 +34,7 @@ for(const width of [320,390,768])test(`portrait ${width}: sideways swipes cannot
     expect(await page.evaluate(()=>[document.documentElement,document.body,document.querySelector('#app')!].every(e=>e.scrollLeft===0))).toBe(true);
   };
   await page.goto('/');await page.evaluate(()=>document.fonts.ready);await stable('.title-screen');
-  await press(page.locator('[data-action="new"]'));await expect(page.locator('.story-screen')).toBeVisible();await stable('.story-screen');
+  await press(page.locator('[data-action="scenarios"]'));await press(page.locator('[data-scenario-id="shangyong"]'));await expect(page.locator('.story-screen')).toBeVisible();await stable('.story-screen');
   for(let n=0;n<5;n++)await press(page.getByRole('button',{name:'계속',exact:true}));await stable('.story-screen');
   await press(page.locator('[data-action="choice-protect"]'));await press(page.locator('[data-action="choice-confirm"]'));
   await stable('.prep-columns');
