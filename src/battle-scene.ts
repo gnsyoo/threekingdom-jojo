@@ -10,6 +10,7 @@ export interface MapPresentation {
 }
 interface MotionAtlas { units: { scale: number; texture?:string; frames: { x:number; y:number; width:number; height:number; pivotX:number; pivotY:number }[] }[] }
 export class BattleScene extends Phaser.Scene {
+  renderDensity = 1;
   onTile: (point: Point) => void = () => {};
   onReady: () => void = () => {};
   private overlay!: Phaser.GameObjects.Graphics;
@@ -27,6 +28,9 @@ export class BattleScene extends Phaser.Scene {
   private retiring = new Set<string>();
   private counts = { walks:0, attacks:0, impacts:0 };
   private motionFrames: { id:string; kind:string; frame:string|number }[] = [];
+  private labelLayer!: HTMLDivElement;
+  private labels = new Map<string, HTMLDivElement>();
+  private landmarkLabel!: HTMLDivElement;
 
   private readonly scenario:Scenario;
   constructor(scenarioId:ScenarioId='yeongcheon') { super('battle');this.scenario=getScenario(scenarioId); }
@@ -59,7 +63,10 @@ export class BattleScene extends Phaser.Scene {
     const marker = this.add.graphics();
     const landmark=this.scenario.landmark;
     marker.lineStyle(2, 0xb9dcaa, .55).strokeCircle((landmark.x+.5)*TILE,(landmark.y+.5)*TILE,15);
-    this.add.text((landmark.x+.5)*TILE,(landmark.y+.5)*TILE-30,landmark.name, { fontFamily: 'serif', fontSize: '13px', color: '#edf4cc', stroke: '#233221', strokeThickness: 3 }).setOrigin(.5);
+    this.labelLayer=document.createElement('div');this.labelLayer.className='battle-labels';this.labelLayer.setAttribute('aria-hidden','true');
+    this.game.canvas.parentElement!.append(this.labelLayer);
+    this.landmarkLabel=document.createElement('div');this.landmarkLabel.className='battle-label landmark-label';this.landmarkLabel.textContent=landmark.name;this.labelLayer.append(this.landmarkLabel);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN,()=>{this.labelLayer.remove();this.labels.clear();this.ready=false;});
     this.overlay = this.add.graphics().setDepth(2);
     this.ready = true; this.configureCamera(true);
     this.scale.on('resize', () => this.configureCamera(false));
@@ -68,7 +75,7 @@ export class BattleScene extends Phaser.Scene {
     });
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => {
       if (!p.isDown || this.pinch) return;
-      if (Math.hypot(p.x - this.pointerStart.x, p.y - this.pointerStart.y) > 7) this.dragged = true;
+      if (Math.hypot(p.x - this.pointerStart.x, p.y - this.pointerStart.y) > 7*this.renderDensity) this.dragged = true;
       if (this.dragged) { this.cameras.main.scrollX -= (p.x - this.lastPointer.x) / this.cameras.main.zoom; this.cameras.main.scrollY -= (p.y - this.lastPointer.y) / this.cameras.main.zoom; }
       this.lastPointer = { x: p.x, y: p.y };
     });
@@ -83,7 +90,7 @@ export class BattleScene extends Phaser.Scene {
     canvas.addEventListener('touchmove', e => {
       if (e.touches.length !== 2 || !this.pinch) return;
       e.preventDefault(); const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-      this.zoom(this.cameras.main.zoom * (d / this.pinch - 1)); this.pinch = d;
+      this.zoom(this.cameras.main.zoom / this.renderDensity * (d / this.pinch - 1)); this.pinch = d;
     }, { passive: false });
     canvas.addEventListener('touchend', () => { if (this.pinch) { this.pinch = 0; this.pinchUntil = performance.now() + 300; } });
     this.onReady();
@@ -94,7 +101,7 @@ export class BattleScene extends Phaser.Scene {
     const portrait=window.matchMedia('(orientation:portrait) and (max-width:900px)').matches;
     const fit = Math.min(this.scale.width / (this.scenario.cols * TILE), this.scale.height / (this.scenario.rows * TILE));
     const cover = Math.max(this.scale.width / (this.scenario.cols * TILE), this.scale.height / (this.scenario.rows * TILE));
-    camera.setZoom(this.overview ? fit : portrait ? .78 : Math.max(cover,this.scale.width<850?.73:.75));
+    camera.setZoom(this.overview ? fit : portrait ? .9*this.renderDensity : Math.max(cover,(this.scale.width/this.renderDensity<850?.82:.85)*this.renderDensity));
     this.updateBounds();
     const cao = this.current?.state.units.find(u => u.id === 'cao');
     if(this.overview)camera.centerOn(this.scenario.cols*TILE/2,this.scenario.rows*TILE/2);
@@ -106,7 +113,7 @@ export class BattleScene extends Phaser.Scene {
     if (!this.ready) return;
     const camera = this.cameras.main;
     const center = camera.midPoint.clone();
-    this.overview = false; camera.setZoom(Phaser.Math.Clamp(camera.zoom + delta, .28, 1.65)); this.updateBounds(); camera.centerOn(center.x, center.y);
+    this.overview = false; camera.setZoom(Phaser.Math.Clamp(camera.zoom + delta*this.renderDensity, .28*this.renderDensity, 1.65*this.renderDensity)); this.updateBounds(); camera.centerOn(center.x, center.y);
   }
   private updateBounds() {
     const c = this.cameras.main, w = this.scenario.cols * TILE, h = this.scenario.rows * TILE;
@@ -118,7 +125,7 @@ export class BattleScene extends Phaser.Scene {
   tileToScreen(p: Point): Point {
     const c = this.cameras.main, r = this.game.canvas.getBoundingClientRect();
     const centerX = c.scrollX + c.width / 2, centerY = c.scrollY + c.height / 2;
-    return { x: r.left + c.width / 2 + ((p.x + .5) * TILE - centerX) * c.zoom, y: r.top + c.height / 2 + ((p.y + .5) * TILE - centerY) * c.zoom };
+    return { x: r.left + (c.width / 2 + ((p.x + .5) * TILE - centerX) * c.zoom)*r.width/c.width, y: r.top + (c.height / 2 + ((p.y + .5) * TILE - centerY) * c.zoom)*r.height/c.height };
   }
   present(data: MapPresentation) {
     this.current = data; if (!this.ready) return;
@@ -178,9 +185,10 @@ export class BattleScene extends Phaser.Scene {
         this.tweens.add({targets:sprite,y:-1.5,duration:650,yoyo:true,repeat:-1,ease:'Sine.easeInOut'});
         const flag = this.add.graphics(); flag.name = 'flag'; node.add(flag);
         const health = this.add.graphics(); health.name = 'health'; node.add(health);
-        const labelName=u.name.replace('동탁군 ','');
-        const label = this.add.text(0,12,`${u.team==='player'?'◆':u.team==='ally'?'●':'▲'} ${labelName}`,{fontFamily:'"Noto Sans KR",sans-serif',fontSize:'12px',fontStyle:'bold',color:'#fff7e5',stroke:'#08131c',strokeThickness:2,backgroundColor:'#08131cb8',padding:{left:4,right:4,top:2,bottom:2}}).setOrigin(.5,0);
-        label.name = 'label'; node.add(label); this.nodes.set(u.id, node);
+        const label=document.createElement('div');label.className=`battle-label unit-label ${u.team}`;label.dataset.unitId=u.id;
+        const symbol=document.createElement('span');symbol.className='team-symbol';symbol.textContent=u.team==='player'?'◆':u.team==='ally'?'●':'▲';
+        label.append(symbol,document.createTextNode(u.name.replace('동탁군 ','')));this.labelLayer.append(label);this.labels.set(u.id,label);
+        this.nodes.set(u.id, node);
       }
       const x = (u.x + .5) * TILE, y = (u.y + 1) * TILE - 7;
       node.setDepth(10 + u.y);
@@ -219,14 +227,30 @@ export class BattleScene extends Phaser.Scene {
       this.tweens.add({ targets: this.fire, alpha: .55, duration: 380, yoyo: true, repeat: -1 });
     }
   }
+  update() {
+    if(!this.ready||!this.current)return;
+    const c=this.cameras.main,scale=1/this.renderDensity,width=c.width*scale,height=c.height*scale;
+    const point=(x:number,y:number)=>({x:(c.width/2+(x-c.scrollX-c.width/2)*c.zoom)*scale,y:(c.height/2+(y-c.scrollY-c.height/2)*c.zoom)*scale});
+    const place=(label:HTMLDivElement,x:number,y:number,visible=true)=>{
+      const p=point(x,y);label.hidden=!visible||p.x<-45||p.x>width+45||p.y<0||p.y>height-18;
+      label.style.left=`${p.x.toFixed(1)}px`;label.style.top=`${p.y.toFixed(1)}px`;
+    };
+    for(const u of this.current.state.units){
+      const node=this.nodes.get(u.id),label=this.labels.get(u.id);if(!node||!label)continue;
+      label.classList.toggle('selected',u.id===this.current.selectedId);
+      label.style.opacity=String(node.alpha);
+      place(label,node.x,node.y+12,u.hp>0&&(c.zoom*scale*TILE>=32||u.id===this.current.selectedId||!!u.boss));
+    }
+    const landmark=this.scenario.landmark;place(this.landmarkLabel,(landmark.x+.5)*TILE,(landmark.y+.5)*TILE-30);
+  }
   private idle(u: Unit, sprite: Phaser.GameObjects.Sprite) {
     if(!sprite.active) return;
-    if(u.sprite>=8){const scale=this.motionData.walk.units[u.sprite].scale;sprite.stop().setTexture('boss-motion',`walk-${u.sprite}-0`).setScale(scale*.8,scale);return;}
-    sprite.stop().setTexture('troops',`unit-${u.sprite}`).setOrigin(.5,.98).setDisplaySize(u.sprite===2?82:70,u.sprite===2?109:94);
+    const unit=this.motionData.walk.units[u.sprite],scale=64/Math.max(...unit.frames.map(frame=>frame.height));
+    sprite.stop().setTexture(unit.texture??'walk',unit.texture?`walk-${u.sprite}-0`:`${u.sprite}-0`).setScale(scale);
   }
   private playMotion(kind: 'walk'|'attack',u:Unit,sprite:Phaser.GameObjects.Sprite) {
-    const scale=this.motionData[kind].units[u.sprite].scale;
-    sprite.play(`${kind}-${u.sprite}`,true).setScale(scale*.8,scale);
+    const scale=64/Math.max(...this.motionData[kind].units[u.sprite].frames.map(frame=>frame.height));
+    sprite.play(`${kind}-${u.sprite}`,true).setScale(scale);
     sprite.anims.timeScale=this.current?.fast?1.6:1;
   }
   private walk(u:Unit,node:Phaser.GameObjects.Container,path:Point[],from:Point) {
@@ -306,21 +330,22 @@ export class BattleScene extends Phaser.Scene {
     this.tweens.add({targets:text,y:text.y-35,alpha:0,duration:650,onComplete:()=>text.destroy()});
     if(u.hp===0&&node?.active) this.tweens.add({targets:node,alpha:0,y:node.y+8,duration:230,onComplete:()=>this.removeUnit(u.id)});
   }
-  private removeUnit(id:string) { this.activeWalks.delete(id);this.nodes.get(id)?.destroy(); this.nodes.delete(id); }
+  private removeUnit(id:string) { this.activeWalks.delete(id);this.nodes.get(id)?.destroy(); this.nodes.delete(id);this.labels.get(id)?.remove();this.labels.delete(id); }
   private pauseMotion(duration:number):Promise<void> {return new Promise(resolve=>this.time.delayedCall(duration,()=>resolve()));}
   private motionBusy() {return this.activeWalks.size>0 || this.pendingHitSequences>0 || this.time.now<this.visualUntil;}
   async waitForAnimations():Promise<void> {
     while(this.ready&&this.motionBusy()) await this.pauseMotion(30);
   }
   motionSnapshot() {
-    return { ...this.counts, frames:this.motionFrames.map(frame=>({...frame})), busy:this.motionBusy(), active:[...this.nodes].map(([id,node])=>{const sprite=node.getByName('sprite') as Phaser.GameObjects.Sprite;return {id,texture:sprite.texture.key,frame:sprite.frame.name,playing:sprite.anims.isPlaying};}) };
+    return { ...this.counts, frames:this.motionFrames.map(frame=>({...frame})), busy:this.motionBusy(), active:[...this.nodes].map(([id,node])=>{const sprite=node.getByName('sprite') as Phaser.GameObjects.Sprite;return {id,texture:sprite.texture.key,frame:sprite.frame.name,playing:sprite.anims.isPlaying,width:sprite.displayWidth,height:sprite.displayHeight};}) };
   }
 }
 
 export function createRenderer(parent: HTMLElement, scene: BattleScene): Phaser.Game {
+  const density=Math.min(window.devicePixelRatio||1,2);scene.renderDensity=density;
   const game=new Phaser.Game({
-    type: Phaser.AUTO, parent, backgroundColor: '#202e20', pixelArt: true, roundPixels: true,
-    scale: { mode: Phaser.Scale.RESIZE, width: parent.clientWidth, height: parent.clientHeight },
+    type: Phaser.AUTO, parent, backgroundColor: '#202e20', pixelArt: false, antialias:true, roundPixels: false,
+    scale: { mode: Phaser.Scale.NONE, zoom:1/density, width: Math.round(parent.clientWidth*density), height: Math.round(parent.clientHeight*density) },
     scene, input: { activePointers: 3 }, audio: { noAudio: true },
     banner: false,
   });
@@ -329,8 +354,8 @@ export function createRenderer(parent: HTMLElement, scene: BattleScene): Phaser.
   const resize=()=>{
     const width=parent.clientWidth,height=parent.clientHeight;
     if(!game.isBooted||!width||!height)return;
-    if(game.scale.width!==width||game.scale.height!==height){
-      game.scale.resize(width,height);
+    if(game.scale.width!==Math.round(width*density)||game.scale.height!==Math.round(height*density)){
+      game.scale.resize(Math.round(width*density),Math.round(height*density));
       game.canvas.style.width=`${width}px`;game.canvas.style.height=`${height}px`;
     }
   };

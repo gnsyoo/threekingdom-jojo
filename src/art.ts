@@ -1,7 +1,21 @@
 export const assetUrl = (file: string) => `${import.meta.env.BASE_URL}assets/${file}`;
+// A nested SVG clips one atlas cell before fitting it into a UI slot. Neither
+// the cell's aspect ratio nor neighbouring portraits change with the slot size.
+function atlasImage(file: string, sourceWidth: number, sourceHeight: number, rect: number[], label: string, className: string, fit = 'xMidYMin slice') {
+  const [x, y, width, height] = rect;
+  return `<svg class="${className}" viewBox="0 0 ${width} ${height}" preserveAspectRatio="${fit}" role="img" aria-label="${label}"><svg width="${width}" height="${height}" viewBox="${x} ${y} ${width} ${height}" overflow="hidden"><image href="${assetUrl(file)}" width="${sourceWidth}" height="${sourceHeight}" /></svg></svg>`;
+}
 export function portraitHtml(id: string, name: string, className = ''): string {
   if (id === 'cao') return `<img class="painted-portrait ${className}" src="${assetUrl('cao-cao.png')}" alt="${name}" />`;
-  return `<div class="painted-portrait portrait-atlas ${['sun','hua','lubu'].includes(id)?'portrait-campaign':''} portrait-${id} ${className}" role="img" aria-label="${name}"></div>`;
+  const campaign = ['sun','hua','lubu'].includes(id);
+  const cells: Record<string, [number, number]> = {liu:[0,0],guan:[1,0],zhang:[0,1],officer:[1,1],sun:[0,0],hua:[1,0],lubu:[0,1]};
+  const [col, row] = cells[id] ?? cells.officer;
+  const width = campaign ? 1356 : 1254, height = campaign ? 1159 : 1254;
+  return atlasImage(campaign?'campaign-portraits.png':'portraits.png',width,height,[col*width/2,row*height/2,width/2,height/2],name,`painted-portrait portrait-atlas ${campaign?'portrait-campaign':''} portrait-${id} ${className}`);
+}
+
+export function formatGold(amount: number) {
+  return new Intl.NumberFormat('ko-KR', amount < 1_000_000 ? {} : {notation:'compact',maximumFractionDigits:1}).format(amount);
 }
 
 const art: Record<string, string> = {
@@ -17,4 +31,7 @@ const art: Record<string, string> = {
   coin: '<circle cx="30" cy="30" r="23" fill="#b38635" stroke="#edce7c" stroke-width="3"/><circle cx="30" cy="30" r="18" fill="#d1a74e" stroke="#785822"/><path d="M24 24h12v12H24Z" fill="#514727" stroke="#f4d991" stroke-width="2"/><path d="M19 16q13-8 23 5" stroke="#f5db9b" fill="none" stroke-width="2"/>',
 };
 export const artIcon = (name: string, size = 42) => `<svg class="art-icon" width="${size}" height="${size}" viewBox="0 0 60 60" aria-hidden="true">${art[name] ?? art.flag}</svg>`;
-export const itemArt = (name: string, label: string) => ['sword','armor','horse','potion'].includes(name) ? `<span class="item-art item-${name}" role="img" aria-label="${label}"></span>` : artIcon(name,64);
+export const itemArt = (name: string, label: string) => {
+  const rects:Record<string,number[]>={sword:[0,145,418,500],armor:[418,190,418,474],horse:[844,148,410,509],potion:[836,770,418,390]};
+  return rects[name] ? atlasImage('items.png',1254,1254,rects[name],label,`item-art item-${name}`,'xMidYMid meet') : artIcon(name,64);
+};

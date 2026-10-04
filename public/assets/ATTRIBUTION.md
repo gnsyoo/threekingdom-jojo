@@ -15,10 +15,18 @@ The following images were newly generated for this project using the image gener
 
 `unit-motion.json` and `boss-motion.json` contain project-authored source rectangle, foot pivot, and scale metadata for the unmodified motion atlases. `ui/frame.svg` and `ui/ink-paper.svg` are project-authored decorative frame and paper illustrations. Menus, text, health bars, and deployment markers remain live interface elements.
 
-The bundled font subsets are Noto Sans KR and Noto Serif KR. They were obtained from Google Fonts for the characters used in this prototype and are self-hosted so the game does not contact a font service during play.
+The bundled font subsets are Noto Sans KR and Noto Serif KR. They were rebuilt from the official Google Fonts variable TTFs for every Korean/Han character in the current UI (341 characters) and are self-hosted so the game does not contact a font service during play.
 
 - Noto CJK source: https://github.com/notofonts/noto-cjk
 - Font licenses: `fonts/Sans-LICENSE.txt` and `fonts/Serif-LICENSE.txt` (SIL Open Font License 1.1)
 - Font subset files are TrueType (`.ttf`), regular/medium/semibold/bold.
 
-When adding dialogue with new characters, expand the subsets or supply a complete compatible font. The existing CSS includes system serif and sans-serif fallback families.
+Sources used on 2026-10-03:
+
+- https://raw.githubusercontent.com/google/fonts/main/ofl/notosanskr/NotoSansKR%5Bwght%5D.ttf — SHA-256 `194018e6b2b293a7964f037b25c0249ce1418bc9ab3c971060a03aa57861e252`.
+- https://raw.githubusercontent.com/google/fonts/main/ofl/notoserifkr/NotoSerifKR%5Bwght%5D.ttf — SHA-256 `11f8d5de6f1b79195efba3828aaa2ec95c1178f5ae976fb23c8d53250a9938f3`.
+- The license files include the corresponding upstream copyright notices and SIL OFL text.
+
+When adding dialogue with new characters, expand the subsets with `scripts/build-font-subsets.py --source-dir <directory>` (requires Python and fonttools; the directory contains the two source files named `sans.ttf` and `serif.ttf`). The script subsets the sources before instantiating weights 400/500/600/700 and verifies coverage. Normal npm builds use the committed files. The existing CSS also includes system serif and sans-serif fallback families.
+
+The UI fits portrait/item atlas rectangles without distorting their aspect ratio. Battle idle poses use the first walk frame, at the same 64-world-pixel maximum height as all other units. Smooth texture filtering and a canvas density capped at 2 improve scaled rendering; source illustrations remain the generated project artwork listed above.

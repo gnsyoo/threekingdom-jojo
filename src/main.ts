@@ -2,6 +2,7 @@ import './style.css';
 import './concept.css';
 import './campaign.css';
 import './mobile.css';
+import './polish.css';
 import { createBattle, findUnit, unitAt, inBounds, terrainAt, TERRAIN_INFO, reachable, key, canAttack, previewAttack, moveUnit, undoMove, attackUnit, waitUnit, encourage, usePotion, potionTargets, bonusComplete, endPlayerPhase, advancePhase, aiStep, parseSave, type BattleState, type Point, type Reachable, type Unit } from './core.ts';
 import { loadBattle, saveBattle, exportBattle, loadCompleted, recordVictory } from './storage.ts';
 import type { BattleScene, MapMode } from './battle-scene.ts';
@@ -90,6 +91,7 @@ function showTitle() {
 
 const storyLines=()=>getScenario(storyScenario).story;
 function showStory() {
+  const scrollTop=document.querySelector('.story-screen')?.scrollTop ?? 0;
   window.clearTimeout(storyTimer);
   if (storyIndex === 2) storyAuto = false;
   screen = 'story'; const story=storyLines(),scenario=getScenario(storyScenario),s=story[storyIndex];
@@ -98,10 +100,11 @@ function showStory() {
     <div class="story-character story-left ${s.speaker==='조조'?'speaking':''}">${portraitHtml('cao','조조')}</div>
     <div class="story-character story-right ${s.speaker==='군관'?'speaking':''}">${portraitHtml('officer','군관')}</div>
     <div class="story-dots">${story.map((_, i) => `<span class="${i <= storyIndex ? 'active' : ''}"></span>`).join('')}</div>
-    ${storyIndex === 2 ? `<div class="story-choices"><button class="${storyChoice==='protect'?'selected':''}" data-action="choice-protect" aria-pressed="${storyChoice==='protect'}">${artIcon('formation')}<strong>${scenario.protectLabel}</strong><span>회복약 3개</span></button><button class="${storyChoice==='advance'?'selected':''}" data-action="choice-advance" aria-pressed="${storyChoice==='advance'}">${artIcon('sword')}<strong>선봉을 강화한다</strong><span>회복약 2개 · 첫 턴 공격 +10%</span></button></div>` : ''}
+    ${storyIndex === 2 ? `<section class="story-choices" aria-label="출진 전략 선택"><header class="choice-heading"><span>軍議 · 출진 전략</span><h2>이번 출진의 방침</h2><p>${storyChoice?'선택한 전략으로 출진을 준비하세요.':'두 전략 중 하나를 선택하세요.'}</p></header><div class="choice-options"><button class="choice-card ${storyChoice==='protect'?'selected':''}" data-action="choice-protect" aria-pressed="${storyChoice==='protect'}"><span class="choice-icon">${artIcon('formation')}</span><span class="choice-copy"><strong>${scenario.protectLabel}</strong><span class="choice-description">부대를 보호하고 전열을 유지합니다.</span><small class="choice-benefit">회복약 3개</small></span><span class="choice-check" aria-hidden="true">${storyChoice==='protect'?icon('check',18):''}</span></button><button class="choice-card ${storyChoice==='advance'?'selected':''}" data-action="choice-advance" aria-pressed="${storyChoice==='advance'}"><span class="choice-icon">${artIcon('sword')}</span><span class="choice-copy"><strong>선봉을 강화한다</strong><span class="choice-description">첫 공격의 위력을 높입니다.</span><small class="choice-benefit">회복약 2개 · 첫 턴 공격 +10%</small></span><span class="choice-check" aria-hidden="true">${storyChoice==='advance'?icon('check',18):''}</span></button></div></section>` : ''}
     <section class="dialogue-box" aria-label="군의 대화"><div class="dialogue-paper"><div class="dialogue-speaker">${s.speaker}</div>${storyIndex<2?`<button class="dialogue-text" data-action="story-next" aria-label="대화 다음으로">${s.line}</button>`:`<p class="dialogue-text">${s.line}</p>`}<div class="dialogue-bottom"><span>${s.note}</span>${storyIndex < 2 ? `<button class="dialogue-next" data-action="story-next" aria-label="계속">▼</button>` : `<button class="primary" data-action="choice-confirm" ${storyChoice?'':'disabled'}>출진 준비로 ${icon('chevron',18)}</button>`}</div></div><nav class="dialogue-tools" aria-label="대화 메뉴"><button class="ornate-button" data-action="story-log">${artIcon('scroll',30)}기록</button><button class="ornate-button ${storyAuto?'active':''}" data-action="story-auto" aria-pressed="${storyAuto}">${icon(storyAuto?'pause':'chevron',22)}자동</button></nav></section>
     <button class="story-back ornate-button" data-action="title">${icon('back',18)}처음 화면</button>
   </main>`;
+  document.querySelector('.story-screen')!.scrollTop=scrollTop;
   scheduleStory();
 }
 function scheduleStory() {
@@ -112,9 +115,11 @@ function scheduleStory() {
 function beginStory(scenarioId:ScenarioId='yeongcheon') { generation++;aiRunning=false;renderer?.destroy(true);renderer=null;scene=null;storyScenario=scenarioId;preparation=null;storyChoice=null;storyIndex=0;storyAuto=false;showStory(); }
 function showPreparation() {
   if (!preparation) return;
+  const scrollTop=document.querySelector('.prep-columns')?.scrollTop ?? 0;
   window.clearTimeout(storyTimer); storyAuto = false;
   generation++; aiRunning = false; renderer?.destroy(true); renderer = null; scene = null;
   screen = 'preparation'; root.innerHTML = preparation.render();
+  document.querySelector('.prep-columns')!.scrollTop=scrollTop;
 }
 
 async function mountBattle() {
@@ -327,7 +332,7 @@ document.addEventListener('click', event => {
   if (a === 'story-next' && screen==='story' && storyIndex<2) { storyIndex++; sound(); showStory(); }
   if (a === 'story-auto' && screen==='story') { storyAuto = storyIndex<2 && !storyAuto; showStory(); }
   if (a === 'story-log' && screen==='story') openModal(a);
-  if ((a === 'choice-protect' || a === 'choice-advance') && screen==='story') { storyChoice = a === 'choice-protect' ? 'protect' : 'advance'; sound(); showStory(); }
+  if ((a === 'choice-protect' || a === 'choice-advance') && screen==='story') { storyChoice = a === 'choice-protect' ? 'protect' : 'advance'; sound(); showStory(); document.querySelector<HTMLButtonElement>(`[data-action="${a}"]`)?.focus({preventScroll:true}); }
   if (a === 'choice-confirm' && screen==='story' && storyChoice) { if(!preparation || preparation.battle.choice!==storyChoice || preparation.battle.scenarioId!==storyScenario) preparation = new Preparation(storyChoice,storyScenario); sound(); showPreparation(); }
   if (a === 'prep-back' && screen==='preparation') { storyIndex=2; showStory(); }
   if (a === 'prep-unit' && preparation && screen==='preparation' && preparation.battle.units.some(u=>u.team!=='enemy'&&u.id===button.dataset.unitId)) { preparation.selectedId=button.dataset.unitId!; showPreparation(); sound(); }
